@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:8.1
+    container_name: authentication-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - ${MYSQL_PORTS}
+
+  api:
+    build: .
+    container_name: authentication-api
+    depends_on:
+      - db
+    environment:
+      SPRING_R2DBC_URL: ${MYSQL_URL}
+      SPRING_R2DBC_USERNAME: ${MYSQL_USER}
+      SPRING_R2DBC_PASSWORD: ${MYSQL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS}
+    ports:
+      - ${API_PORTS}
+    restart: unless-stopped
+
+volumes:
+  db_data:
