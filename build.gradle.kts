@@ -25,6 +25,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("io.projectreactor:reactor-core:3.5.10")
 
+    // spring logging
+    implementation("org.springframework.boot:spring-boot-starter-logging")
+
     // Reactive database stack
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("io.asyncer:r2dbc-mysql:1.1.0")
