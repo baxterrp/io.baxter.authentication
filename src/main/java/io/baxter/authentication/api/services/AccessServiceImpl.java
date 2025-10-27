@@ -16,8 +16,7 @@ import io.baxter.authentication.api.models.RegistrationRequest;
 import io.baxter.authentication.data.models.UserDataModel;
 import io.baxter.authentication.infrastructure.behavior.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -25,6 +24,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AccessServiceImpl implements AccessService{
@@ -34,31 +34,29 @@ public class AccessServiceImpl implements AccessService{
     private final RoleRepository roleRepository;
     private final PasswordEncryption passwordEncryption;
 
-    private final Logger logger = LoggerFactory.getLogger(AccessServiceImpl.class);
-
     // find existing user by validating username and password, generating jwt token
     @Override
     public Mono<LoginResponse> login(LoginRequest request) {
         return userRepository.findByUsername(request.getUserName())
             .switchIfEmpty(Mono.defer(() -> {
-                logger.error("account not found for email {}", request.getUserName());
+                log.error("account not found for email {}", request.getUserName());
                 return Mono.error(new InvalidLoginException());
             }))
             .flatMap(user -> {
                 if (!passwordEncryption.verify(request.getPassword(), user.getPassword())){
-                    logger.error("invalid password used for user {}", request.getUserName());
+                    log.error("invalid password used for user {}", request.getUserName());
                     return Mono.error(new InvalidLoginException());
                 }
 
                 return userRoleRepository.findByUserId(user.getId())
                     .flatMap(userRole -> {
-                        logger.info("found user {}, looking up roles", user.getUsername());
+                        log.info("found user {}, looking up roles", user.getUsername());
                         return roleRepository.findById(userRole.getRoleId());
                     })
                     .map(RoleDataModel::getName)
                     .collectList()
                     .map(roles -> {
-                        logger.info("found roles {}, generating token", roles);
+                        log.info("found roles {}, generating token", roles);
                         return tokenGenerator.generateToken(request.getUserName(), roles);
                     })
                     .map(LoginResponse::new);
@@ -68,18 +66,18 @@ public class AccessServiceImpl implements AccessService{
     // register new user with username and password
     @Override
     public Mono<RegistrationResponse> register(RegistrationRequest request) {
-        logger.info("attempting registration for user with username {}", request.getUserName());
+        log.info("attempting registration for user with username {}", request.getUserName());
 
         return userRepository.existsByUsername(request.getUserName())
             .flatMap(exists -> {
 
                 // if username already taken, throw exception (handled by global exception handler to return 409)
                 if (exists){
-                    logger.error("user already exists with name {}", request.getUserName());
+                    log.error("user already exists with name {}", request.getUserName());
                     return Mono.error(new ResourceExistsException("User", request.getUserName()));
                 }
 
-                logger.info("found user with name {}", request.getUserName());
+                log.info("found user with name {}", request.getUserName());
 
                 // find roles by name and validate they exist
                 Mono<List<RoleDataModel>> roleDataModels =  Flux.fromArray(request.getRoles())
@@ -96,7 +94,7 @@ public class AccessServiceImpl implements AccessService{
                     String hashedPassword = passwordEncryption.encrypt(request.getPassword());
                     UserDataModel newUser = new UserDataModel(request.getUserName(), hashedPassword);
 
-                    logger.info(
+                    log.info(
                             "saving user {} with roles {}",
                             request.getUserName(),
                             roles.stream().map(RoleDataModel::getName).collect(Collectors.joining(",")));
@@ -105,7 +103,7 @@ public class AccessServiceImpl implements AccessService{
                         // result of save is a Mono<user> so flatmap will run against the single result
                         .flatMap(user -> {
 
-                            logger.info("saved user {}", user.getUsername());
+                            log.info("saved user {}", user.getUsername());
                             List<UserRoleDataModel> userRoles = roles
                                 // in order to iterate the collection roles - we must open a "stream"
                                 // think of this as the equivalent of LINQ lazy loading IEnumerable items
