@@ -1,9 +1,6 @@
 package io.baxter.authentication.api.controllers;
 
-import io.baxter.authentication.api.models.LoginRequest;
-import io.baxter.authentication.api.models.LoginResponse;
-import io.baxter.authentication.api.models.RegistrationRequest;
-import io.baxter.authentication.api.models.RegistrationResponse;
+import io.baxter.authentication.api.models.*;
 import io.baxter.authentication.api.services.AccessService;
 import io.baxter.authentication.infrastructure.behavior.exceptions.InvalidLoginException;
 import jakarta.validation.Valid;
@@ -11,10 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 @Slf4j

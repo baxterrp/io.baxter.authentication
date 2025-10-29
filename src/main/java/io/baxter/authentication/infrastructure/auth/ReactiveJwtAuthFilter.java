@@ -78,7 +78,9 @@ public class ReactiveJwtAuthFilter implements WebFilter {
             UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(username, null, authorities);
 
             // write auth to chain context
-            return chain.filter(exchange).contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth));
+            return ReactiveSecurityContextHolder.getContext()
+                    .flatMap(ctx -> chain.filter(exchange))
+                    .contextWrite(ReactiveSecurityContextHolder.withAuthentication(auth));
 
         } catch (Exception e) {
             exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);

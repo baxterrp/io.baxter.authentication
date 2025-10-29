@@ -1,7 +1,6 @@
 package io.baxter.authentication.api.services;
 
-import io.baxter.authentication.api.models.LoginResponse;
-import io.baxter.authentication.api.models.RegistrationResponse;
+import io.baxter.authentication.api.models.*;
 import io.baxter.authentication.data.models.RoleDataModel;
 import io.baxter.authentication.data.models.UserRoleDataModel;
 import io.baxter.authentication.data.repository.RoleRepository;
@@ -11,8 +10,6 @@ import io.baxter.authentication.infrastructure.behavior.exceptions.InvalidLoginE
 import io.baxter.authentication.infrastructure.behavior.exceptions.ResourceExistsException;
 import io.baxter.authentication.infrastructure.auth.JwtTokenGenerator;
 import io.baxter.authentication.infrastructure.auth.PasswordEncryption;
-import io.baxter.authentication.api.models.LoginRequest;
-import io.baxter.authentication.api.models.RegistrationRequest;
 import io.baxter.authentication.data.models.UserDataModel;
 import io.baxter.authentication.infrastructure.behavior.exceptions.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -57,9 +54,10 @@ public class AccessServiceImpl implements AccessService{
                     .collectList()
                     .map(roles -> {
                         log.info("found roles {}, generating token", roles);
-                        return tokenGenerator.generateToken(request.getUserName(), roles);
-                    })
-                    .map(LoginResponse::new);
+                        String token = tokenGenerator.generateToken(request.getUserName(), roles);
+
+                        return new LoginResponse(user.getId(), user.getUsername(), token);
+                    });
             });
     }
 
