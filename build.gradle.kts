@@ -2,6 +2,7 @@ import org.gradle.kotlin.dsl.implementation
 
 plugins {
 	java
+    jacoco
 	id("org.springframework.boot") version "3.5.6"
 	id("io.spring.dependency-management") version "1.1.7"
 }
@@ -42,14 +43,34 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+jacoco {
+    toolVersion = "0.8.13"
+    reportsDirectory = layout.buildDirectory.dir("reports/jacoco")
+}
 
-tasks {
-    test {
-        useJUnitPlatform()
-        jvmArgs("-XX:+EnableDynamicAgentLoading")
-    }
-
-    named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
-        mainClass.set("io.baxter.authentication.Application")
+tasks.jacocoTestReport {
+    reports {
+        xml.required = false
+        csv.required = false
+        html.outputLocation = layout.buildDirectory.dir("jacocoHtml")
     }
 }
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test) // tests are required to run before generating the report
+}
+
+tasks.test {
+    useJUnitPlatform()
+    jvmArgs("-XX:+EnableDynamicAgentLoading")
+    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.check{
+    dependsOn(tasks.jacocoTestCoverageVerification)
+}
+
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    mainClass.set("io.baxter.authentication.Application")
+}
+
