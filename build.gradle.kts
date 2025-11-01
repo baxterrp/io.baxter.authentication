@@ -11,20 +11,27 @@ group = "io.baxter"
 version = "0.0.1-SNAPSHOT"
 description = "Authentication Service"
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
 repositories {
 	mavenCentral()
 }
 
 dependencies {
     // lombok for DI
-    compileOnly("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
+    compileOnly("org.projectlombok:lombok:1.18.36")
+    annotationProcessor("org.projectlombok:lombok:1.18.36")
 
     // spring
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("io.projectreactor:reactor-core:3.5.10")
+
+    // swagger
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.6.0")
 
     // spring logging
     implementation("org.springframework.boot:spring-boot-starter-logging")
@@ -46,20 +53,15 @@ dependencies {
 
 jacoco {
     toolVersion = "0.8.13"
-    reportsDirectory = layout.buildDirectory.dir("reports/jacoco")
 }
 
 tasks.jacocoTestReport {
+    dependsOn(tasks.test)
     reports {
         xml.required.set(true)
         html.required.set(true)
-        csv.required = false
-        html.outputLocation = layout.buildDirectory.dir("jacocoHtml")
+        csv.required.set(false)
     }
-}
-
-tasks.jacocoTestReport {
-    dependsOn(tasks.test) // tests are required to run before generating the report
 }
 
 tasks.test {
