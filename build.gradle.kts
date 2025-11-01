@@ -42,6 +42,14 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
-    mainClass.set("io.baxter.authentication.Application")
+
+tasks {
+    test {
+        useJUnitPlatform()
+        jvmArgs("-XX:+EnableDynamicAgentLoading")
+    }
+
+    named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+        mainClass.set("io.baxter.authentication.Application")
+    }
 }

@@ -6,10 +6,11 @@ import io.baxter.authentication.infrastructure.behavior.exceptions.InvalidLoginE
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
+
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -37,16 +38,22 @@ public class AccessController {
     }
 
     @PostMapping("/register")
-    public Mono<ResponseEntity<RegistrationResponse>> register(@Valid @RequestBody RegistrationRequest request){
+    public Mono<ResponseEntity<Map<String, String>>> register(@Valid @RequestBody RegistrationRequest request){
         log.info("attempting registration with username {}", request.getUserName());
 
         return accessService.register(request)
                 .map(response -> {
                     log.info("successfully registered user with username {} and id {}", response.getName(), response.getId());
-                    return ResponseEntity.status(HttpStatus.CREATED).body(response);
+                    return ResponseEntity.status(HttpStatus.CREATED)
+                            .body(Map.of("id", response.getId().toString(), "name", response.getName()));
                 })
-                .doOnError(exception -> {
-                    log.error("failed registration attempt for username {} with error {}", request.getUserName(), exception.getMessage());
+                .onErrorResume(exception -> {
+                    log.error(exception.getMessage());
+                    String message = String.format("failed registration attempt for username %s with error %s", request.getUserName(), exception.getMessage());
+
+                    return Mono.just(ResponseEntity
+                            .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body(Map.of("Error", message)));
                 });
     }
 }
