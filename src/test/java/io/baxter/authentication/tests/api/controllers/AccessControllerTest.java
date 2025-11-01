@@ -17,12 +17,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @ControllerTest(controllers = AccessController.class)
 public class AccessControllerTest {
+    private final Integer testUserId = 1;
     private final String testUserName = "test-user";
     private final String testPassword = "Test-password-123-$$";
-    private final String[] testRoles = new String[] { "TEST_USER" };
     private final String registrationMessage = String.format("attempting registration with username %s", testUserName);
+    private final String[] testRoles = new String[] { "TEST_USER" };
     private final ArgumentMatcher<RegistrationRequest> registrationRequestMatcher = registrationRequest ->
             registrationRequest.getUserName().equals(testUserName) && registrationRequest.getPassword().equals(testPassword);
+    private final ArgumentMatcher<LoginRequest> loginRequestArgumentMatcher = loginRequest ->
+            loginRequest.getUserName().equals(testUserName) && loginRequest.getPassword().equals(testPassword);
 
     private AccessController accessController;
 
@@ -35,12 +38,48 @@ public class AccessControllerTest {
     }
 
     @Test
+    @DisplayName("Login with valid credentials returns a user id and access token")
+    void loginShouldReturnLoginResponseWhenLoginSuccessful(CapturedOutput output){
+        // Arrange
+        final String token = "abc123";
+        LoginRequest loginRequest = new LoginRequest(testUserName, testPassword);
+        LoginResponse expectedResponse = new LoginResponse(testUserId, testUserName, token);
+
+        Mockito.when(mockAccessService.login(Mockito.argThat(loginRequestArgumentMatcher)))
+                .thenReturn(Mono.just(expectedResponse));
+
+        // Act
+        Mono<ResponseEntity<LoginResponse>> result = accessController.login(loginRequest);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectNextMatches(response -> {
+                    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+                    LoginResponse body = response.getBody();
+                    assertThat(body).isNotNull();
+                    assertThat(body.getId()).isEqualTo(testUserId);
+                    assertThat(body.getUserName()).isEqualTo(testUserName);
+                    assertThat(body.getToken()).isEqualTo(token);
+
+                    return true;
+                })
+                .verifyComplete();
+
+        Mockito.verify(mockAccessService).login(Mockito.argThat(loginRequestArgumentMatcher));
+        Mockito.verifyNoMoreInteractions(mockAccessService);
+
+        String logs = output.getOut();
+        assertThat(logs).contains(String.format("attempting login for %s", testUserName));
+        assertThat(logs).contains(String.format("successfully logged in for user %s with token %s", testUserName, token));
+    }
+
+    @Test
     @DisplayName("Logs a success message and returns id and name when AccessService.register completes successfully")
     void shouldReturnIdAndNameWhenRegistrationSuccessful(CapturedOutput output){
         // Arrange
-        final Integer userId = 1;
         final RegistrationRequest request = new RegistrationRequest(testUserName, testPassword, testRoles);
-        final RegistrationResponse registrationResponse = new RegistrationResponse(testUserName, userId);
+        final RegistrationResponse registrationResponse = new RegistrationResponse(testUserName, testUserId);
 
         Mockito.when(mockAccessService.register(Mockito.argThat(registrationRequestMatcher)))
                 .thenReturn(Mono.just(registrationResponse));
@@ -55,7 +94,7 @@ public class AccessControllerTest {
 
                     Map<String, String> body = response.getBody();
                     assertThat(body).isNotNull();
-                    assertThat(body.get("id")).isEqualTo(userId.toString());
+                    assertThat(body.get("id")).isEqualTo(testUserId.toString());
                     assertThat(body.get("name")).isEqualTo(testUserName);
 
                     return true;
@@ -67,7 +106,7 @@ public class AccessControllerTest {
 
         String logs = output.getOut();
         assertThat(logs).contains(registrationMessage);
-        assertThat(logs).contains(String.format("successfully registered user with username %s and id %s", testUserName, userId));
+        assertThat(logs).contains(String.format("successfully registered user with username %s and id %s", testUserName, testUserId));
     }
 
     @Test
