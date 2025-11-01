@@ -25,6 +25,10 @@ The service provides endpoints for user registration and login with **JWT-based 
 
 ```
 io.baxter.authentication
+├── .github
+|   ├── workflows
+|   |   └── gradle-ci.yml  # github actions pipeline for build, test, code coverage report
+|    
 ├── api
 │   ├── controllers        # REST endpoints (AccessController)
 │   ├── models             # Request/Response DTOs
@@ -66,9 +70,11 @@ spring.application.name=io.baxter.api
 spring.r2dbc.url=${SPRING_R2DBC_URL}
 spring.r2dbc.username=${SPRING_R2DBC_USERNAME}
 spring.r2dbc.password=${SPRING_R2DBC_PASSWORD}
-
 jwt.secret=${JWT_SECRET}
 jwt.expiration-ms=${JWT_EXPIRATION_MS}
+
+logging.level.root=INFO
+logging.level.io.baxter=DEBUG
 ```
 
 ---
@@ -84,9 +90,13 @@ MYSQL_USER=authuser
 MYSQL_PASSWORD=authpass
 MYSQL_PORTS=3306:3306
 MYSQL_URL=r2dbc:mysql://db:3306/authentication_db
-API_PORTS=8080:8080
+
 JWT_SECRET=supersecretkey
 JWT_EXPIRATION_MS=3600000
+
+API_PORTS=8080:8080
+
+COMPOSE_PROJECT_NAME=auth
 ```
 
 2. **Build and start services:**
@@ -109,12 +119,16 @@ If you prefer to run without Docker:
 2. Set environment variables or edit `application.properties`:
 
 ```
+spring.application.name=io.baxter.api
+
 spring.r2dbc.url=r2dbc:mysql://localhost:3306/authentication_db
 spring.r2dbc.username=authuser
 spring.r2dbc.password=authpass
-
-jwt.secret=supersecretkey
+jwt.secret=yoursecret
 jwt.expiration-ms=3600000
+
+logging.level.root=INFO
+logging.level.io.baxter=DEBUG
 ```
 
 3. Run the application with Gradle:
@@ -145,7 +159,7 @@ Registers a new user and assigns roles.
 
 ```
 {
-  "userName": "alice",
+  "name": "alice",
   "userId": 1
 }
 ```
