@@ -4,82 +4,104 @@ import io.baxter.authentication.api.controllers.AccessController;
 import io.baxter.authentication.api.models.*;
 import io.baxter.authentication.api.services.AccessService;
 import org.junit.jupiter.api.*;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.mockito.*;
 import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.http.*;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
+
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ControllerTest(controllers = AccessController.class)
 public class AccessControllerTest {
-    private final String testExceptionMessage = "test message 123";
-    private final String testUser = "test-user";
+    private final String testUserName = "test-user";
     private final String testPassword = "Test-password-123-$$";
     private final String[] testRoles = new String[] { "TEST_USER" };
-    private final String registrationMessage = String.format("attempting registration with username %s", testUser);
+    private final String registrationMessage = String.format("attempting registration with username %s", testUserName);
+    private final ArgumentMatcher<RegistrationRequest> registrationRequestMatcher = registrationRequest ->
+            registrationRequest.getUserName().equals(testUserName) && registrationRequest.getPassword().equals(testPassword);
 
-    @Autowired
-    WebTestClient testClient;
+    private AccessController accessController;
 
     @MockitoBean
     AccessService mockAccessService;
+
+    @BeforeEach
+    void setup() {
+        accessController = new AccessController(mockAccessService);
+    }
 
     @Test
     @DisplayName("Logs a success message and returns id and name when AccessService.register completes successfully")
     void shouldReturnIdAndNameWhenRegistrationSuccessful(CapturedOutput output){
         // Arrange
         final Integer userId = 1;
-        final RegistrationRequest request = new RegistrationRequest(testUser, testPassword, testRoles);
-        final RegistrationResponse registrationResponse = new RegistrationResponse(testUser, userId);
+        final RegistrationRequest request = new RegistrationRequest(testUserName, testPassword, testRoles);
+        final RegistrationResponse registrationResponse = new RegistrationResponse(testUserName, userId);
 
-        Mockito.when(mockAccessService.register(Mockito.any())).thenReturn(Mono.just(registrationResponse));
+        Mockito.when(mockAccessService.register(Mockito.argThat(registrationRequestMatcher)))
+                .thenReturn(Mono.just(registrationResponse));
 
         // Act
-        WebTestClient.ResponseSpec response = testClient.post()
-                .uri("/api/auth/register")
-                .bodyValue(request)
-                .exchange();
+        Mono<ResponseEntity<Map<String, String>>> result = accessController.register(request);
 
         // Assert
-        response.expectStatus()
-                .is2xxSuccessful()
-                .expectBody()
-                .jsonPath("$.id")
-                .isEqualTo(userId)
-                .jsonPath("$.name")
-                .isEqualTo(testUser);
+        StepVerifier.create(result)
+                .expectNextMatches(response -> {
+                    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        assertThat(output).contains(registrationMessage);
-        assertThat(output).contains(String.format("successfully registered user with username %s and id %s", testUser, userId));
+                    Map<String, String> body = response.getBody();
+                    assertThat(body).isNotNull();
+                    assertThat(body.get("id")).isEqualTo(userId.toString());
+                    assertThat(body.get("name")).isEqualTo(testUserName);
+
+                    return true;
+                })
+                .verifyComplete();
+
+        Mockito.verify(mockAccessService).register(Mockito.argThat(registrationRequestMatcher));
+        Mockito.verifyNoMoreInteractions(mockAccessService);
+
+        String logs = output.getOut();
+        assertThat(logs).contains(registrationMessage);
+        assertThat(logs).contains(String.format("successfully registered user with username %s and id %s", testUserName, userId));
     }
 
     @Test
     @DisplayName("Logs an exception message when AccessService.register throws an exception")
     void shouldLogErrorWhenAccessServiceFails(CapturedOutput output){
         // Arrange
-        final String expectedResponseMessage = "failed registration attempt for username test-user with error test message 123";
-        final RegistrationRequest request = new RegistrationRequest(testUser, testPassword, testRoles);
+        final String testExceptionMessage = "test message 123";
+        final String expectedResponseMessage = String.format("failed registration attempt for username test-user with error %s", testExceptionMessage);
+        final RegistrationRequest request = new RegistrationRequest(testUserName, testPassword, testRoles);
 
-        Mockito.when(mockAccessService.register(Mockito.any()))
+        Mockito.when(mockAccessService.register(Mockito.argThat(registrationRequestMatcher)))
                 .thenReturn(Mono.error(new RuntimeException(testExceptionMessage)));
 
         // Act
-        WebTestClient.ResponseSpec response = testClient.post()
-                .uri("/api/auth/register")
-                .bodyValue(request)
-                .exchange();
+        Mono<ResponseEntity<Map<String, String>>> result = accessController.register(request);
 
         // Assert
-        response.expectStatus()
-                .is5xxServerError()
-                .expectBody()
-                .jsonPath("$.Error")
-                .isEqualTo(expectedResponseMessage);
+        StepVerifier.create(result)
+                .expectNextMatches(response -> {
+                    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
 
-        assertThat(output).contains(registrationMessage);
-        assertThat(output).contains(testExceptionMessage);
+                    Map<String, String> body = response.getBody();
+                    assertThat(body).isNotNull();
+                    assertThat(body.get("Error")).isEqualTo(expectedResponseMessage);
+
+                    return true;
+                })
+                .verifyComplete();
+
+        Mockito.verify(mockAccessService).register(Mockito.argThat(registrationRequestMatcher));
+        Mockito.verifyNoMoreInteractions(mockAccessService);
+
+        String logs = output.getOut();
+        assertThat(logs).contains(registrationMessage);
+        assertThat(logs).contains(testExceptionMessage);
     }
 }
