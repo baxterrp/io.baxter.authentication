@@ -5,6 +5,9 @@ The service provides endpoints for user registration and login with **JWT-based 
 
 ---
 
+## Code Coverage
+[![codecov](https://codecov.io/github/baxterrp/io.baxter.authentication/branch/main/graph/badge.svg?token=7W4PYZOXFH)](https://codecov.io/github/baxterrp/io.baxter.authentication)
+
 ## 🚀 Features
 
 - Reactive and non-blocking using **Spring WebFlux**
