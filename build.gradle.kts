@@ -3,8 +3,10 @@ import org.gradle.kotlin.dsl.implementation
 plugins {
 	java
     jacoco
+    id("co.uzzu.dotenv.gradle") version "2.0.0"
 	id("org.springframework.boot") version "3.5.6"
 	id("io.spring.dependency-management") version "1.1.7"
+    id("org.springdoc.openapi-gradle-plugin") version "1.9.0"
 }
 
 group = "io.baxter"
@@ -58,6 +60,24 @@ dependencies {
 configurations.all {
     resolutionStrategy.force("ch.qos.logback:logback-core:1.5.19")
     resolutionStrategy.force("ch.qos.logback:logback-classic:1.5.19")
+}
+
+openApi {
+    outputDir = layout.buildDirectory.dir("openapi")
+    outputFileName = "openapi.json"
+    apiDocsUrl = "/v3/api-docs"
+    waitTimeInSeconds = 10
+
+    val baseUrl = System.getenv("API_URL") ?: "http://localhost:9000"
+    apiDocsUrl = "$baseUrl/v3/api-docs"
+
+    customBootRun {
+        // Set the fully qualified name of your main Spring Boot class
+        mainClass.set("io.baxter.authentication.api.Application")
+
+        // Use the same runtime classpath as your main source set
+        classpath = sourceSets["main"].runtimeClasspath
+    }
 }
 
 jacoco {
