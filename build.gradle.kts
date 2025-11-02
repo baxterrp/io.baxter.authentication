@@ -73,7 +73,7 @@ openApi {
 
     customBootRun {
         // Set the fully qualified name of your main Spring Boot class
-        mainClass.set("io.baxter.authentication.Application")
+        mainClass.set("io.baxter.authentication.api.Application")
 
         // Use the same runtime classpath as your main source set
         classpath = sourceSets["main"].runtimeClasspath
