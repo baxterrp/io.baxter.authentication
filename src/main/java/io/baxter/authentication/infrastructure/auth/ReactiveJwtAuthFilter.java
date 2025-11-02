@@ -32,7 +32,9 @@ public class ReactiveJwtAuthFilter implements WebFilter {
         String path = exchange.getRequest().getURI().getPath();
 
         // if its a login attempt, ignore jwt validation
-        if (path.startsWith("/api/auth")) {
+        List<String> publicPaths = List.of("/api/auth", "/v3/api-docs", "/swagger-ui", "/webjars");
+
+        if (publicPaths.stream().anyMatch(path::startsWith)) {
             return chain.filter(exchange);
         }
 

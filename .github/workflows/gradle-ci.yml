@@ -26,6 +26,18 @@ jobs:
       - name: Build and run tests
         run: ./gradlew clean build jacocoTestReport jacocoTestCoverageVerification --stacktrace
 
+      - name: Generate OpenAPI Docs
+        run: ./gradlew generateOpenApiDocs --stacktrace
+        env:
+          SPRING_PROFILES_ACTIVE: docs
+          API_URL: ${{ secrets.API_URL }}
+
+      - name: Upload OpenAPI Docs
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-docs
+          path: build/openapi/openapi.json
+
       - name: Upload JaCoCo coverage report
         if: always()
         uses: actions/upload-artifact@v4
@@ -39,4 +51,3 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: build/reports/jacoco/test/jacocoTestReport.xml
           fail_ci_if_error: true
-

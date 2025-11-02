@@ -21,6 +21,7 @@ public class AsyncSecurityConfiguration {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers("/api/auth/**").permitAll()
+                        .pathMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**", "/webjars/**").permitAll()
                         .pathMatchers(HttpMethod.GET, "/api/user/**").hasAuthority("ROLE_USER")
                         .anyExchange().authenticated())
                 .addFilterAfter(filter, SecurityWebFiltersOrder.AUTHENTICATION)

@@ -3,6 +3,7 @@ package io.baxter.authentication.api.controllers;
 import io.baxter.authentication.api.models.*;
 import io.baxter.authentication.api.services.AccessService;
 import io.baxter.authentication.infrastructure.behavior.exceptions.InvalidLoginException;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import java.util.Map;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
+@Tag(name = "Access", description = "Account registration, login, and token management.")
 @RequestMapping("/api/auth")
 public class AccessController {
     private final AccessService accessService;
