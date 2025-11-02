@@ -18,9 +18,14 @@ public class UserController {
     @GetMapping("{id}")
     public Mono<ResponseEntity<UserModel>> getUserById(@PathVariable Integer id) {
         return userService.getUserById(id)
-            .map(user -> {
-                log.info("found user with id {} and username {}", id, user.getUserName());
-                return ResponseEntity.ok(user);
-            });
+                .map(user -> {
+                    log.info("found user with id {} and username {}", id, user.getUserName());
+                    return ResponseEntity.ok(user);
+            })
+                .doOnError(exception ->
+                        log.error(
+                                "unable to fetch user with id {} with error {}",
+                                id,
+                                exception.getMessage()));
     }
 }

@@ -39,8 +39,8 @@ public class AccessControllerTest {
     @DisplayName("Login when service throws exception, logs and throws")
     void loginShouldLogExceptionAndThrowWhenServiceFails(CapturedOutput output){
         // Arrange
-        String exceptionMessage = "Test error 123";
-        LoginRequest loginRequest = new LoginRequest(testUserName, testPassword);
+        final String exceptionMessage = "Test error 123";
+        final LoginRequest loginRequest = new LoginRequest(testUserName, testPassword);
 
         Mockito.when(mockAccessService.login(Mockito.argThat(loginRequestArgumentMatcher)))
                 .thenReturn(Mono.error(new RuntimeException(exceptionMessage)));
@@ -68,8 +68,8 @@ public class AccessControllerTest {
     void loginShouldReturnLoginResponseWhenLoginSuccessful(CapturedOutput output){
         // Arrange
         final String token = "abc123";
-        LoginRequest loginRequest = new LoginRequest(testUserName, testPassword);
-        LoginResponse expectedResponse = new LoginResponse(testUserId, testUserName, token);
+        final LoginRequest loginRequest = new LoginRequest(testUserName, testPassword);
+        final LoginResponse expectedResponse = new LoginResponse(testUserId, testUserName, token);
 
         Mockito.when(mockAccessService.login(Mockito.argThat(loginRequestArgumentMatcher)))
                 .thenReturn(Mono.just(expectedResponse));
