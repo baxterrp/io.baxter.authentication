@@ -2,7 +2,6 @@ package io.baxter.authentication.api.controllers;
 
 import io.baxter.authentication.api.models.*;
 import io.baxter.authentication.api.services.AccessService;
-import io.baxter.authentication.infrastructure.behavior.exceptions.InvalidLoginException;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,8 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
-
-import java.util.Map;
 
 @Slf4j
 @RestController
@@ -31,31 +28,26 @@ public class AccessController {
                     log.info("successfully logged in for user {} with token {}", request.getUserName(), response.getToken());
                     return ResponseEntity.ok().body(response);
                 })
-                .onErrorResume(
-                        InvalidLoginException.class,
-                        exception -> {
-                            log.error("login attempt failed {}", exception.getMessage());
-                            return Mono.just(ResponseEntity.status(401).build());
-                        });
+                .doOnError(exception ->
+                        log.error(
+                                "login attempt failed for user name {} with error {}",
+                                request.getUserName(),
+                                exception.getMessage()));
     }
 
     @PostMapping("/register")
-    public Mono<ResponseEntity<Map<String, String>>> register(@Valid @RequestBody RegistrationRequest request){
+    public Mono<ResponseEntity<RegistrationResponse>> register(@Valid @RequestBody RegistrationRequest request){
         log.info("attempting registration with username {}", request.getUserName());
 
         return accessService.register(request)
                 .map(response -> {
                     log.info("successfully registered user with username {} and id {}", response.getName(), response.getId());
-                    return ResponseEntity.status(HttpStatus.CREATED)
-                            .body(Map.of("id", response.getId().toString(), "name", response.getName()));
+                    return ResponseEntity.status(HttpStatus.CREATED).body(response);
                 })
-                .onErrorResume(exception -> {
-                    log.error(exception.getMessage());
-                    String message = String.format("failed registration attempt for username %s with error %s", request.getUserName(), exception.getMessage());
-
-                    return Mono.just(ResponseEntity
-                            .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                            .body(Map.of("Error", message)));
-                });
+                .doOnError(exception ->
+                        log.error(
+                                "failed registration attempt for username {} with error {}",
+                                request.getUserName(),
+                                exception.getMessage()));
     }
 }

@@ -1,14 +1,12 @@
 package io.baxter.authentication.api.models;
 
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import jakarta.validation.constraints.*;
+import lombok.*;
 
 @Getter
 @AllArgsConstructor
 public class LoginRequest {
+    @Email(message = "invalid email format")
     @Size(max = 100, message = "username cannot exceed 100 characters")
     @NotEmpty(message = "username is required")
     String userName;

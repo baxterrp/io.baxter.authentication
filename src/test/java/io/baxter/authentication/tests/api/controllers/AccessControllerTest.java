@@ -11,8 +11,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.Map;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ControllerTest(controllers = AccessController.class)
@@ -35,6 +33,34 @@ public class AccessControllerTest {
     @BeforeEach
     void setup() {
         accessController = new AccessController(mockAccessService);
+    }
+
+    @Test
+    @DisplayName("Login when service throws exception, logs and throws")
+    void loginShouldLogExceptionAndThrowWhenServiceFails(CapturedOutput output){
+        // Arrange
+        String exceptionMessage = "Test error 123";
+        LoginRequest loginRequest = new LoginRequest(testUserName, testPassword);
+
+        Mockito.when(mockAccessService.login(Mockito.argThat(loginRequestArgumentMatcher)))
+                .thenReturn(Mono.error(new RuntimeException(exceptionMessage)));
+
+        // Act
+        Mono<ResponseEntity<LoginResponse>> result = accessController.login(loginRequest);
+
+        // Assert
+        StepVerifier.create(result)
+                .expectErrorMatches(exception ->
+                    exception instanceof RuntimeException && exception.getMessage().equals(exceptionMessage)
+                )
+                .verify();
+
+        Mockito.verify(mockAccessService).login(Mockito.argThat(loginRequestArgumentMatcher));
+        Mockito.verifyNoMoreInteractions(mockAccessService);
+
+        String logs = output.getOut();
+        assertThat(logs).contains(String.format("attempting login for %s", testUserName));
+        assertThat(logs).contains(String.format("login attempt failed for user name %s with error %s", testUserName, exceptionMessage));
     }
 
     @Test
@@ -85,17 +111,17 @@ public class AccessControllerTest {
                 .thenReturn(Mono.just(registrationResponse));
 
         // Act
-        Mono<ResponseEntity<Map<String, String>>> result = accessController.register(request);
+        Mono<ResponseEntity<RegistrationResponse>> result = accessController.register(request);
 
         // Assert
         StepVerifier.create(result)
                 .expectNextMatches(response -> {
                     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-                    Map<String, String> body = response.getBody();
+                    RegistrationResponse body = response.getBody();
                     assertThat(body).isNotNull();
-                    assertThat(body.get("id")).isEqualTo(testUserId.toString());
-                    assertThat(body.get("name")).isEqualTo(testUserName);
+                    assertThat(body.getId()).isEqualTo(testUserId);
+                    assertThat(body.getName()).isEqualTo(testUserName);
 
                     return true;
                 })
@@ -113,34 +139,27 @@ public class AccessControllerTest {
     @DisplayName("Logs an exception message when AccessService.register throws an exception")
     void shouldLogErrorWhenAccessServiceFails(CapturedOutput output){
         // Arrange
-        final String testExceptionMessage = "test message 123";
-        final String expectedResponseMessage = String.format("failed registration attempt for username test-user with error %s", testExceptionMessage);
+        final String exceptionMessage = "test message 123";
+        final String expectedLogMessage = String.format("failed registration attempt for username %s with error %s", testUserName, exceptionMessage);
         final RegistrationRequest request = new RegistrationRequest(testUserName, testPassword, testRoles);
 
         Mockito.when(mockAccessService.register(Mockito.argThat(registrationRequestMatcher)))
-                .thenReturn(Mono.error(new RuntimeException(testExceptionMessage)));
+                .thenReturn(Mono.error(new RuntimeException(exceptionMessage)));
 
         // Act
-        Mono<ResponseEntity<Map<String, String>>> result = accessController.register(request);
+        Mono<ResponseEntity<RegistrationResponse>> result = accessController.register(request);
 
         // Assert
         StepVerifier.create(result)
-                .expectNextMatches(response -> {
-                    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-
-                    Map<String, String> body = response.getBody();
-                    assertThat(body).isNotNull();
-                    assertThat(body.get("Error")).isEqualTo(expectedResponseMessage);
-
-                    return true;
-                })
-                .verifyComplete();
+                .expectErrorMatches(exception ->
+                        exception instanceof RuntimeException && exception.getMessage().contains(exceptionMessage))
+                .verify();
 
         Mockito.verify(mockAccessService).register(Mockito.argThat(registrationRequestMatcher));
         Mockito.verifyNoMoreInteractions(mockAccessService);
 
         String logs = output.getOut();
         assertThat(logs).contains(registrationMessage);
-        assertThat(logs).contains(testExceptionMessage);
+        assertThat(logs).contains(expectedLogMessage);
     }
 }
