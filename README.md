@@ -8,6 +8,10 @@ The service provides endpoints for user registration and login with **JWT-based 
 ## ✅ Code Coverage
 [![codecov](https://codecov.io/github/baxterrp/io.baxter.authentication/branch/main/graph/badge.svg?token=7W4PYZOXFH)](https://codecov.io/github/baxterrp/io.baxter.authentication)
 
+## 📘 API Specification
+You can view the full OpenAPI specification here:  
+👉 [openapi.json](https://github.com/baxterrp/io.baxter.authentication/blob/main/openapi.json)
+
 ## 🚀 Features
 
 - Reactive and non-blocking using **Spring WebFlux**
@@ -28,7 +32,6 @@ io.baxter.authentication
 ├── .github
 |   ├── workflows
 |   |   └── gradle-ci.yml  # github actions pipeline for build, test, code coverage report
-|    
 ├── api
 │   ├── controllers        # REST endpoints (AccessController)
 │   ├── models             # Request/Response DTOs
@@ -135,64 +138,6 @@ logging.level.io.baxter=DEBUG
 
 ```bash
 ./gradlew bootRun
-```
-
----
-
-## 🔐 API Endpoints
-
-### POST /api/auth/register
-
-Registers a new user and assigns roles.
-
-**Request Body:**
-
-```
-{
-  "userName": "alice",
-  "password": "password123",
-  "roles": ["USER"]
-}
-```
-
-**Response (201 Created):**
-
-```
-{
-  "name": "alice",
-  "userId": 1
-}
-```
-
----
-
-### POST /api/auth/login
-
-Authenticates a user and returns a JWT token.
-
-**Request Body:**
-
-```
-{
-  "userName": "alice",
-  "password": "password123"
-}
-```
-
-**Response (200 OK):**
-
-```
-{
-  "token": "eyJhbGciOiJIUzI1NiIsInR..."
-}
-```
-
-**Error (401 Unauthorized):**
-
-```
-{
-  "error": "Invalid credentials"
-}
 ```
 
 ---

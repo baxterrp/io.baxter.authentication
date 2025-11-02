@@ -71,13 +71,7 @@ openApi {
     val baseUrl = System.getenv("API_URL") ?: "http://localhost:9000"
     apiDocsUrl = "$baseUrl/v3/api-docs"
 
-    customBootRun {
-        // Set the fully qualified name of your main Spring Boot class
-        mainClass.set("io.baxter.authentication.api.Application")
-
-        // Use the same runtime classpath as your main source set
-        classpath = sourceSets["main"].runtimeClasspath
-    }
+    customBootRun {}
 }
 
 jacoco {
@@ -104,6 +98,6 @@ tasks.check{
 }
 
 tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
-    mainClass.set("io.baxter.authentication.Application")
+    mainClass.set("io.baxter.authentication.api.Application")
 }
 
