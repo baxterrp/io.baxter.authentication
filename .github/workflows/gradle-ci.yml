@@ -2,7 +2,7 @@ name: Build, Test, and Code Coverage
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, swagger-docs-gen ]
   workflow_dispatch:
 
 jobs:
