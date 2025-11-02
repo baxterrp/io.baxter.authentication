@@ -28,7 +28,7 @@ public class AccessControllerTest {
     private AccessController accessController;
 
     @MockitoBean
-    AccessService mockAccessService;
+    private AccessService mockAccessService;
 
     @BeforeEach
     void setup() {

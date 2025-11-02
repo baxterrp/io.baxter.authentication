@@ -1,10 +1,12 @@
 package io.baxter.authentication.data.models;
 
+import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 @Table(name = "users")
+@Setter
 public class UserDataModel {
     @Id
     Integer id;
