@@ -67,6 +67,7 @@ public class ReactiveJwtAuthFilter implements WebFilter {
             String username = claims.getSubject();
 
             // roles should be provided in token
+            @SuppressWarnings("unchecked")
             List<String> roles = claims.get(ROLES, List.class);
 
             // map to simple granted authorities
