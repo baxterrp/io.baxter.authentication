@@ -41,7 +41,7 @@ public class AccessController {
 
         return accessService.register(request)
                 .map(response -> {
-                    log.info("successfully registered user with username {} and id {}", response.getName(), response.getId());
+                    log.info("successfully registered user with username {} and id {}", response.getUserName(), response.getId());
                     return ResponseEntity.status(HttpStatus.CREATED).body(response);
                 })
                 .doOnError(exception ->

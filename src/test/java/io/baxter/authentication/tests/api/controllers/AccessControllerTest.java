@@ -121,7 +121,7 @@ public class AccessControllerTest {
                     RegistrationResponse body = response.getBody();
                     assertThat(body).isNotNull();
                     assertThat(body.getId()).isEqualTo(testUserId);
-                    assertThat(body.getName()).isEqualTo(testUserName);
+                    assertThat(body.getUserName()).isEqualTo(testUserName);
 
                     return true;
                 })
