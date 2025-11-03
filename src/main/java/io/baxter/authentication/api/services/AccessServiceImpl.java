@@ -75,7 +75,7 @@ public class AccessServiceImpl implements AccessService{
                     return Mono.error(new ResourceExistsException("User", request.getUserName()));
                 }
 
-                log.info("found user with name {}", request.getUserName());
+                log.info("valid user name provided, validating roles");
 
                 // find roles by name and validate they exist
                 Mono<List<RoleDataModel>> roleDataModels =  Flux.fromArray(request.getRoles())
