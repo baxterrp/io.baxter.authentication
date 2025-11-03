@@ -18,13 +18,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(OutputCaptureExtension.class)
 public class UserServiceTest {
-    private final Integer id = 1;
-
     @InjectMocks
     private UserServiceImpl userService;
 
     @Mock
     private UserRepository mockUserRepository;
+
+    private final Integer id = 1;
 
     @Test
     @DisplayName("getUserById should return an UserModel when user is found")
