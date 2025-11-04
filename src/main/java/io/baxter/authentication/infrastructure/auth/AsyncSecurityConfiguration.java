@@ -1,6 +1,6 @@
 package io.baxter.authentication.infrastructure.auth;
 
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.*;
 import org.springframework.security.config.Customizer;
@@ -15,6 +15,7 @@ import java.util.Base64;
 @Configuration
 @EnableWebFluxSecurity
 @RequiredArgsConstructor
+@Generated
 public class AsyncSecurityConfiguration {
     @Bean
     public ReactiveJwtDecoder jwtDecoder(@Value("${jwt.secret}") String secret) {

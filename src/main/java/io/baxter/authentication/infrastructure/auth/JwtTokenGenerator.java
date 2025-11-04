@@ -2,6 +2,7 @@ package io.baxter.authentication.infrastructure.auth;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.Generated;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -9,6 +10,7 @@ import java.security.Key;
 import java.util.*;
 
 @Service
+@Generated
 public class JwtTokenGenerator {
     private final String secret;
     private final long expiration;
