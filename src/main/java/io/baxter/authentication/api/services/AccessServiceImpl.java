@@ -119,7 +119,7 @@ public class AccessServiceImpl implements AccessService{
                                 .flatMap(userRoleRepository::save)
 
                                 // return the registered user with newly generated identity
-                                .then(Mono.just(new RegistrationResponse(user.getUsername(), user.getUserId(), user.getId())));
+                                .then(Mono.just(new RegistrationResponse(user.getUsername(), user.getId())));
                         });
                     });
             });

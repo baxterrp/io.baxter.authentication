@@ -109,7 +109,7 @@ public class AccessControllerTest {
     void shouldReturnIdAndNameWhenRegistrationSuccessful(CapturedOutput output){
         // Arrange
         final RegistrationRequest request = new RegistrationRequest(testUserName, testPassword, testRoles);
-        final RegistrationResponse registrationResponse = new RegistrationResponse(testUserName, testGlobalUserId, testUserId);
+        final RegistrationResponse registrationResponse = new RegistrationResponse(testUserName, testUserId);
 
         Mockito.when(mockAccessService.register(Mockito.argThat(registrationRequestMatcher)))
                 .thenReturn(Mono.just(registrationResponse));
@@ -125,7 +125,6 @@ public class AccessControllerTest {
                     RegistrationResponse body = response.getBody();
                     assertThat(body).isNotNull();
                     assertThat(body.getId()).isEqualTo(testUserId);
-                    assertThat(body.getUserId()).isEqualTo(testGlobalUserId);
                     assertThat(body.getUserName()).isEqualTo(testUserName);
 
                     return true;

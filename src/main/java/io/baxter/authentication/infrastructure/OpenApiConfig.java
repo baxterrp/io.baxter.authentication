@@ -3,8 +3,10 @@ package io.baxter.authentication.infrastructure;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.*;
+import lombok.Generated;
 import org.springframework.context.annotation.*;
 
+@Generated
 @Configuration
 public class OpenApiConfig {
     @Bean
