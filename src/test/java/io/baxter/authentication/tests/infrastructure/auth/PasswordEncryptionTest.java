@@ -1,4 +1,4 @@
-package io.baxter.authentication.tests.infrastructure;
+package io.baxter.authentication.tests.infrastructure.auth;
 
 import io.baxter.authentication.infrastructure.auth.PasswordEncryption;
 import org.junit.jupiter.api.*;

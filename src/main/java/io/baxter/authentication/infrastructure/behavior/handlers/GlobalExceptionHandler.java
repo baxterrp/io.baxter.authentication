@@ -1,12 +1,14 @@
 package io.baxter.authentication.infrastructure.behavior.handlers;
 
 import io.baxter.authentication.infrastructure.behavior.exceptions.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.support.WebExchangeBindException;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidLoginException.class)
@@ -23,7 +25,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public Mono<ResponseEntity<AuthServiceErrorResponse>> handleUserNotFound(ResourceNotFoundException exception) {
+    public Mono<ResponseEntity<AuthServiceErrorResponse>> handleResourceNotFound(ResourceNotFoundException exception) {
         return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(new AuthServiceErrorResponse(exception)));
     }
@@ -42,6 +44,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public Mono<ResponseEntity<AuthServiceErrorResponse>> handleGeneralException(Exception exception) {
+        log.error("exception occurred in auth service", exception);
+
         return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new AuthServiceErrorResponse()));
     }
