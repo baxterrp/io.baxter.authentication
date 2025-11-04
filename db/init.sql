@@ -1,8 +1,10 @@
-CREATE TABLE IF NOT EXISTS `users` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `username` varchar(100) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  PRIMARY KEY (`id`)
+CREATE TABLE IF NOT EXISTS users (
+  id INT NOT NULL AUTO_INCREMENT,
+  user_id CHAR(36) NOT NULL DEFAULT (UUID()),
+  username VARCHAR(100) NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_user_id (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS `roles` (
@@ -18,5 +20,5 @@ CREATE TABLE IF NOT EXISTS `user_roles` (
   FOREIGN KEY (`role_id`) REFERENCES roles(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-INSERT IGNORE INTO roles (name) VALUES ('ROLE_USER');
+INSERT IGNORE INTO roles (name) VALUES ('USER');
 

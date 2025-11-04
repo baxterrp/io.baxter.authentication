@@ -56,7 +56,7 @@ public class AccessServiceImpl implements AccessService{
                         log.info("found roles {}, generating token", roles);
                         String token = tokenGenerator.generateToken(request.getUserName(), roles);
 
-                        return new LoginResponse(user.getId(), user.getUsername(), token);
+                        return new LoginResponse(user.getId(), user.getUsername(), user.getUserId(), token);
                     });
             });
     }
@@ -119,7 +119,7 @@ public class AccessServiceImpl implements AccessService{
                                 .flatMap(userRoleRepository::save)
 
                                 // return the registered user with newly generated identity
-                                .then(Mono.just(new RegistrationResponse(user.getUsername(), user.getId())));
+                                .then(Mono.just(new RegistrationResponse(user.getUsername(), user.getUserId(), user.getId())));
                         });
                     });
             });

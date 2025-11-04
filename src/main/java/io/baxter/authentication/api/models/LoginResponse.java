@@ -1,12 +1,14 @@
 package io.baxter.authentication.api.models;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.*;
+
+import java.util.UUID;
 
 @Getter
 @AllArgsConstructor
 public class LoginResponse {
     int id;
     String userName;
+    UUID userId;
     String token;
 }

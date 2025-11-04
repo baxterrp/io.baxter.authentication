@@ -11,6 +11,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ControllerTest(controllers = AccessController.class)
@@ -18,6 +20,7 @@ public class AccessControllerTest {
     private final Integer testUserId = 1;
     private final String testUserName = "test-user";
     private final String testPassword = "Test-password-123-$$";
+    private final UUID testGlobalUserId = UUID.fromString("7f83abf8-2c3a-4df4-9505-baf2e7c4d8a4");
     private final String registrationMessage = String.format("attempting registration with username %s", testUserName);
     private final String[] testRoles = new String[] { "TEST_USER" };
     private final ArgumentMatcher<RegistrationRequest> registrationRequestMatcher = registrationRequest ->
@@ -69,7 +72,7 @@ public class AccessControllerTest {
         // Arrange
         final String token = "abc123";
         final LoginRequest loginRequest = new LoginRequest(testUserName, testPassword);
-        final LoginResponse expectedResponse = new LoginResponse(testUserId, testUserName, token);
+        final LoginResponse expectedResponse = new LoginResponse(testUserId, testUserName, testGlobalUserId, token);
 
         Mockito.when(mockAccessService.login(Mockito.argThat(loginRequestArgumentMatcher)))
                 .thenReturn(Mono.just(expectedResponse));
@@ -86,6 +89,7 @@ public class AccessControllerTest {
                     assertThat(body).isNotNull();
                     assertThat(body.getId()).isEqualTo(testUserId);
                     assertThat(body.getUserName()).isEqualTo(testUserName);
+                    assertThat(body.getUserId()).isEqualTo(testGlobalUserId);
                     assertThat(body.getToken()).isEqualTo(token);
 
                     return true;
@@ -105,7 +109,7 @@ public class AccessControllerTest {
     void shouldReturnIdAndNameWhenRegistrationSuccessful(CapturedOutput output){
         // Arrange
         final RegistrationRequest request = new RegistrationRequest(testUserName, testPassword, testRoles);
-        final RegistrationResponse registrationResponse = new RegistrationResponse(testUserName, testUserId);
+        final RegistrationResponse registrationResponse = new RegistrationResponse(testUserName, testGlobalUserId, testUserId);
 
         Mockito.when(mockAccessService.register(Mockito.argThat(registrationRequestMatcher)))
                 .thenReturn(Mono.just(registrationResponse));
@@ -121,6 +125,7 @@ public class AccessControllerTest {
                     RegistrationResponse body = response.getBody();
                     assertThat(body).isNotNull();
                     assertThat(body.getId()).isEqualTo(testUserId);
+                    assertThat(body.getUserId()).isEqualTo(testGlobalUserId);
                     assertThat(body.getUserName()).isEqualTo(testUserName);
 
                     return true;
