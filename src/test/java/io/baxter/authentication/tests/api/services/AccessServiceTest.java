@@ -45,6 +45,13 @@ public class AccessServiceTest {
     private final String registerLogMessage = String.format("attempting registration for user with username %s", testUserName);
     private final String validatingRolesLogMessage = "valid user name provided, validating roles";
     private final List<String> validRoles = List.of("TEST_ROLE_1", "TEST_ROLE_2");
+    private final List<RoleDataModel> roleDataModels = List.of(
+            new RoleDataModel(1, validRoles.getFirst()),
+            new RoleDataModel(2, validRoles.get(1)));
+
+    private final List<UserRoleDataModel> userRoleDataModels = List.of(
+            new UserRoleDataModel(userId, roleDataModels.getFirst().getId()),
+            new UserRoleDataModel(userId, roleDataModels.get(1).getId()));
 
     private final ArgumentMatcher<String> roleArgumentMatcher = role ->
             validRoles.stream().anyMatch(validRole -> validRole.equals(role));
@@ -112,14 +119,6 @@ public class AccessServiceTest {
     @DisplayName("if valid username and password provided, roles should be looked up and jwt token generated")
     void loginShouldReturnLoginResponseWhenValidLoginRequestProvided(CapturedOutput output){
         // Arrange
-        List<RoleDataModel> roleDataModels = List.of(
-                new RoleDataModel(1, validRoles.getFirst()),
-                new RoleDataModel(2, validRoles.get(1)));
-
-        List<UserRoleDataModel> userRoleDataModels = List.of(
-                new UserRoleDataModel(userId, roleDataModels.getFirst().getId()),
-                new UserRoleDataModel(userId, roleDataModels.get(1).getId()));
-
         String roleString = String.join(", ", validRoles);
         String lookingUpRolesLogMessage = String.format("found user %s, looking up roles", testUserName);
         String foundRolesLogMessage = String.format("found roles [%s], generating token", roleString);
@@ -210,5 +209,49 @@ public class AccessServiceTest {
         String logs = output.getOut();
         assertThat(logs).contains(registerLogMessage);
         assertThat(logs).contains(validatingRolesLogMessage);
+    }
+
+    @Test
+    @DisplayName("on register, valid registration provided with valid roles, a registration response is returned")
+    void registerShouldReturnRegistrationResponseWhenValidCredentialsProvided(CapturedOutput output){
+        String roleString = String.join(",", validRoles);
+        String savingUserLogMessage = String.format("saving user %s with roles %s", testUserName, roleString);
+        String savedUserLogMessage = String.format("saved user %s", testUserName);
+
+        RegistrationRequest request = new RegistrationRequest(testUserName, testPassword, validRoles.toArray(String[]::new));
+        UserDataModel user = new UserDataModel(testUserName, testPassword);
+        user.setId(userId);
+
+        ArgumentMatcher<UserRoleDataModel> roleOneDataModelMatcher = role -> role != null && role.getRoleId().equals(userRoleDataModels.getFirst().getRoleId());
+        ArgumentMatcher<UserRoleDataModel> roleTwoDataModelMatcher = role -> role != null && role.getRoleId().equals(userRoleDataModels.get(1).getRoleId());
+
+        Mockito.when(mockUserRepository.existsByUsername(testUserName)).thenReturn(Mono.just(false));
+        Mockito.when(mockRoleRepository.findByName(validRoles.getFirst())).thenReturn(Mono.just(roleDataModels.getFirst()));
+        Mockito.when(mockRoleRepository.findByName(validRoles.get(1))).thenReturn(Mono.just(roleDataModels.get(1)));
+        Mockito.when(mockUserRepository.save(Mockito.argThat(savedUser -> savedUser.getUsername().equals(testUserName)))).thenReturn(Mono.just(user));
+        Mockito.when(mockUserRoleRepository.save(Mockito.argThat(roleOneDataModelMatcher))).thenReturn(Mono.empty());
+        Mockito.when(mockUserRoleRepository.save(Mockito.argThat(roleTwoDataModelMatcher))).thenReturn(Mono.empty());
+
+        // Act
+        Mono<RegistrationResponse> response = accessService.register(request);
+
+        // Assert
+        StepVerifier.create(response).expectNextMatches(registration ->
+                        registration.getUserName().equals(testUserName) && registration.getId().equals(userId))
+                .verifyComplete();
+
+        Mockito.verify(mockUserRepository).existsByUsername(testUserName);
+        Mockito.verify(mockRoleRepository).findByName(validRoles.getFirst());
+        Mockito.verify(mockRoleRepository).findByName(validRoles.get(1));
+        Mockito.verify(mockUserRepository).save(Mockito.argThat(savedUser -> savedUser.getUsername().equals(testUserName)));
+        Mockito.verify(mockUserRoleRepository).save(Mockito.argThat(role -> role.getRoleId().equals(userRoleDataModels.getFirst().getRoleId())));
+        Mockito.verify(mockUserRoleRepository).save(Mockito.argThat(role -> role.getRoleId().equals(userRoleDataModels.get(1).getRoleId())));
+        Mockito.verifyNoMoreInteractions(mockUserRepository);
+
+        String logs = output.getOut();
+        assertThat(logs).contains(registerLogMessage);
+        assertThat(logs).contains(validatingRolesLogMessage);
+        assertThat(logs).contains(savingUserLogMessage);
+        assertThat(logs).contains(savedUserLogMessage);
     }
 }
