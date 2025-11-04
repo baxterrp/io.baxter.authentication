@@ -5,7 +5,7 @@ COPY . .
 RUN gradle clean bootJar --no-daemon
 
 # Stage 2: Runtime
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jdk
 WORKDIR /app
 
 # Copy the JAR built in Stage 1
