@@ -8,6 +8,14 @@ The service provides endpoints for user registration and login with **JWT-based 
 ## ✅ Code Coverage
 [![codecov](https://codecov.io/github/baxterrp/io.baxter.authentication/branch/main/graph/badge.svg?token=7W4PYZOXFH)](https://codecov.io/github/baxterrp/io.baxter.authentication)
 
+## 📊 Sonar Quality Gate
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=baxterrp_io-baxter-authentication&metric=alert_status&token=e0b768d87e69c0ac0d508ac9dd567dd92b5c30c3)](https://sonarcloud.io/summary/new_code?id=baxterrp_io-baxter-authentication)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=baxterrp_io-baxter-authentication&metric=code_smells&token=e0b768d87e69c0ac0d508ac9dd567dd92b5c30c3)](https://sonarcloud.io/summary/new_code?id=baxterrp_io-baxter-authentication)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=baxterrp_io-baxter-authentication&metric=duplicated_lines_density&token=e0b768d87e69c0ac0d508ac9dd567dd92b5c30c3)](https://sonarcloud.io/summary/new_code?id=baxterrp_io-baxter-authentication)
+
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=baxterrp_io-baxter-authentication&metric=sqale_rating&token=e0b768d87e69c0ac0d508ac9dd567dd92b5c30c3)](https://sonarcloud.io/summary/new_code?id=baxterrp_io-baxter-authentication)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=baxterrp_io-baxter-authentication&metric=security_rating&token=e0b768d87e69c0ac0d508ac9dd567dd92b5c30c3)](https://sonarcloud.io/summary/new_code?id=baxterrp_io-baxter-authentication)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=baxterrp_io-baxter-authentication&metric=reliability_rating&token=e0b768d87e69c0ac0d508ac9dd567dd92b5c30c3)](https://sonarcloud.io/summary/new_code?id=baxterrp_io-baxter-authentication)
 ## 📘 API Specification
 You can view the full OpenAPI specification here:  
 👉 [openapi.json](https://github.com/baxterrp/io.baxter.authentication/blob/main/openapi.json)
