@@ -18,7 +18,7 @@ import java.util.Base64;
 @Generated
 public class AsyncSecurityConfiguration {
     @Bean
-    public ReactiveJwtDecoder jwtDecoder(@Value("${jwt.secret}") String secret) {
+    public ReactiveJwtDecoder jwtDecoder(@Value("${spring.security.oauth2.resourceserver.jwt.secret-key}") String secret) {
         byte[] keyBytes = Base64.getDecoder().decode(secret);
         SecretKeySpec secretKey = new SecretKeySpec(keyBytes, "HmacSHA256");
         return NimbusReactiveJwtDecoder.withSecretKey(secretKey).build();

@@ -16,7 +16,7 @@ public class RegistrationRequest {
             message = "invalid password (at least 8 characters, 1 upper case, 1 lower case, 1 special character)")
     String password;
 
-    @Schema(description = "User's Access Roles", example = "[\"ROLE_USER\"]")
+    @Schema(description = "User's Access Roles", example = "[\"USER\"]")
     @NotEmpty(message = "user must have access roles")
     String[] roles;
 
