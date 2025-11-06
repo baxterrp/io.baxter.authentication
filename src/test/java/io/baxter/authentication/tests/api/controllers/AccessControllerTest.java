@@ -16,7 +16,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ControllerTest(controllers = AccessController.class)
-public class AccessControllerTest {
+class AccessControllerTest {
     private final Integer testUserId = 1;
     private final String testUserName = "test-user";
     private final String testPassword = "Test-password-123-$$";
@@ -62,8 +62,9 @@ public class AccessControllerTest {
         Mockito.verifyNoMoreInteractions(mockAccessService);
 
         String logs = output.getOut();
-        assertThat(logs).contains(String.format("attempting login for %s", testUserName));
-        assertThat(logs).contains(String.format("login attempt failed for user name %s with error %s", testUserName, exceptionMessage));
+        assertThat(logs)
+                .contains(String.format("attempting login for %s", testUserName))
+                .contains(String.format("login attempt failed for user name %s with error %s", testUserName, exceptionMessage));
     }
 
     @Test
@@ -100,8 +101,9 @@ public class AccessControllerTest {
         Mockito.verifyNoMoreInteractions(mockAccessService);
 
         String logs = output.getOut();
-        assertThat(logs).contains(String.format("attempting login for %s", testUserName));
-        assertThat(logs).contains(String.format("successfully logged in for user %s with token %s", testUserName, token));
+        assertThat(logs)
+                .contains(String.format("attempting login for %s", testUserName))
+                .contains(String.format("successfully logged in for user %s with token %s", testUserName, token));
     }
 
     @Test
@@ -135,8 +137,9 @@ public class AccessControllerTest {
         Mockito.verifyNoMoreInteractions(mockAccessService);
 
         String logs = output.getOut();
-        assertThat(logs).contains(registrationMessage);
-        assertThat(logs).contains(String.format("successfully registered user with username %s and id %s", testUserName, testUserId));
+        assertThat(logs)
+                .contains(registrationMessage)
+                .contains(String.format("successfully registered user with username %s and id %s", testUserName, testUserId));
     }
 
     @Test
@@ -163,7 +166,8 @@ public class AccessControllerTest {
         Mockito.verifyNoMoreInteractions(mockAccessService);
 
         String logs = output.getOut();
-        assertThat(logs).contains(registrationMessage);
-        assertThat(logs).contains(expectedLogMessage);
+        assertThat(logs)
+                .contains(registrationMessage)
+                .contains(expectedLogMessage);
     }
 }

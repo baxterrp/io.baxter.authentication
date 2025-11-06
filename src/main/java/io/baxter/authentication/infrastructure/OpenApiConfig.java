@@ -9,7 +9,7 @@ import org.springframework.context.annotation.*;
 @Generated
 @Configuration
 public class OpenApiConfig {
-    private final String bearerAuth = "bearerAuth";
+    private static final String bearerAuth = "bearerAuth";
 
     @Bean
     public OpenAPI baseOpenAPI() {
