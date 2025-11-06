@@ -86,9 +86,12 @@ sonarqube {
         property("sonar.organization", "baxterrp")
         property("sonar.host.url", "https://sonarcloud.io")
         property("sonar.branch.name", "main")
+        property("sonar.scm.provider", "git")
 
         property("sonar.java.coveragePlugin", "jacoco")
-        property("sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
+        property("sonar.junit.reportPaths", "${projectDir}/build/test-results/test")
+        property("sonar.coverage.jacoco.xmlReportPaths", "${projectDir}/build/reports/jacoco/test/jacocoTestReport.xml")
+
     }
 }
 
