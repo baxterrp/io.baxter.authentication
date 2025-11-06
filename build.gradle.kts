@@ -3,6 +3,7 @@ import org.gradle.kotlin.dsl.implementation
 plugins {
 	java
     jacoco
+    id("org.sonarqube") version "5.1.0.4882"
     id("co.uzzu.dotenv.gradle") version "2.0.0"
 	id("org.springframework.boot") version "3.5.6"
 	id("io.spring.dependency-management") version "1.1.7"
@@ -77,6 +78,17 @@ openApi {
 
 jacoco {
     toolVersion = "0.8.13"
+}
+
+sonarqube {
+    properties {
+        property("sonar.projectKey", "baxterrp_io-baxter-authentication")
+        property("sonar.organization", "baxterrp")
+        property("sonar.host.url", "https://sonarcloud.io")
+
+        property("sonar.java.coveragePlugin", "jacoco")
+        property("sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
+    }
 }
 
 tasks.jacocoTestReport {
