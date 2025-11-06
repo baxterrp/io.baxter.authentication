@@ -8,6 +8,9 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout repository
@@ -27,7 +30,19 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build and run tests
-        run: ./gradlew clean build jacocoTestReport jacocoTestCoverageVerification --stacktrace
+        run: ./gradlew clean build jacocoTestReport jacocoTestCoverageVerification --info
+
+      - name: Build Docker Image
+        run: docker build -t authentication:latest
+
+      - name: Log in to github
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+
+      - name: Tag image
+        run: docker tag authentication:latest ghcr.io/${{ github.repository_owner }}/authentication:latest
+
+      - name: Push image
+        run: docker push ghcr.io/${{ github.repository_owner }}/authentication:latest
 
       - name: Upload JaCoCo coverage report
         if: always()
