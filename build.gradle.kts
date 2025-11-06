@@ -85,6 +85,7 @@ sonarqube {
         property("sonar.projectKey", "baxterrp_io-baxter-authentication")
         property("sonar.organization", "baxterrp")
         property("sonar.host.url", "https://sonarcloud.io")
+        property("sonar.branch.name", "main")
 
         property("sonar.java.coveragePlugin", "jacoco")
         property("sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
