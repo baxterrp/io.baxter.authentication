@@ -9,7 +9,7 @@ import org.springframework.context.annotation.*;
 @Generated
 @Configuration
 public class OpenApiConfig {
-    private static final String bearerAuth = "bearerAuth";
+    private static final String BEARER_AUTH = "bearerAuth";
 
     @Bean
     public OpenAPI baseOpenAPI() {
@@ -18,11 +18,11 @@ public class OpenApiConfig {
                         .title("Authentication Service API")
                         .version("1.0.0")
                         .description("Reactive Authentication API documentation"))
-                .addSecurityItem(new SecurityRequirement().addList(bearerAuth))
+                .addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH))
                 .components(new io.swagger.v3.oas.models.Components()
-                        .addSecuritySchemes(bearerAuth,
+                        .addSecuritySchemes(BEARER_AUTH,
                                 new SecurityScheme()
-                                        .name(bearerAuth)
+                                        .name(BEARER_AUTH)
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")
                                         .bearerFormat("JWT")
