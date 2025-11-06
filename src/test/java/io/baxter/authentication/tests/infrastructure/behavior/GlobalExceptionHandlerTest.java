@@ -20,7 +20,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(OutputCaptureExtension.class)
-public class GlobalExceptionHandlerTest {
+class GlobalExceptionHandlerTest {
     private GlobalExceptionHandler handler;
 
     @BeforeEach

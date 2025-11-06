@@ -70,7 +70,7 @@ public class AccessServiceImpl implements AccessService{
             .flatMap(exists -> {
 
                 // if username already taken, throw exception (handled by global exception handler to return 409)
-                if (exists){
+                if (Boolean.TRUE.equals(exists)){
                     log.error("user already exists with name {}", request.getUserName());
                     return Mono.error(new ResourceExistsException("User", request.getUserName()));
                 }

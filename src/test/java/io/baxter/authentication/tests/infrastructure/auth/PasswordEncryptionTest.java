@@ -5,7 +5,7 @@ import org.junit.jupiter.api.*;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-public class PasswordEncryptionTest {
+class PasswordEncryptionTest {
     private PasswordEncryption passwordEncryption;
 
     private final String password = "testPassword123";

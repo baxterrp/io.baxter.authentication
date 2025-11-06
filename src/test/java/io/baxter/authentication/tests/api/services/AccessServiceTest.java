@@ -20,7 +20,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(OutputCaptureExtension.class)
-public class AccessServiceTest {
+class AccessServiceTest {
     @Mock
     private UserRepository mockUserRepository;
 
@@ -153,8 +153,9 @@ public class AccessServiceTest {
         Mockito.verifyNoMoreInteractions(mockUserRepository);
 
         String logs = output.getOut();
-        assertThat(logs).contains(lookingUpRolesLogMessage);
-        assertThat(logs).contains(foundRolesLogMessage);
+        assertThat(logs)
+                .contains(lookingUpRolesLogMessage)
+                .contains(foundRolesLogMessage);
     }
 
     @Test
@@ -180,8 +181,9 @@ public class AccessServiceTest {
         Mockito.verifyNoMoreInteractions(mockUserRepository);
 
         String logs = output.getOut();
-        assertThat(logs).contains(registerLogMessage);
-        assertThat(logs).contains(expectedLogErrorMessage);
+        assertThat(logs)
+                .contains(registerLogMessage)
+                .contains(expectedLogErrorMessage);
     }
 
     @Test
@@ -207,8 +209,9 @@ public class AccessServiceTest {
         Mockito.verifyNoMoreInteractions(mockUserRepository);
 
         String logs = output.getOut();
-        assertThat(logs).contains(registerLogMessage);
-        assertThat(logs).contains(validatingRolesLogMessage);
+        assertThat(logs)
+                .contains(registerLogMessage)
+                .contains(validatingRolesLogMessage);
     }
 
     @Test
@@ -249,9 +252,10 @@ public class AccessServiceTest {
         Mockito.verifyNoMoreInteractions(mockUserRepository);
 
         String logs = output.getOut();
-        assertThat(logs).contains(registerLogMessage);
-        assertThat(logs).contains(validatingRolesLogMessage);
-        assertThat(logs).contains(savingUserLogMessage);
-        assertThat(logs).contains(savedUserLogMessage);
+        assertThat(logs)
+                .contains(registerLogMessage)
+                .contains(validatingRolesLogMessage)
+                .contains(savingUserLogMessage)
+                .contains(savedUserLogMessage);
     }
 }
