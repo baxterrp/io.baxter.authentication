@@ -26,7 +26,6 @@ public class JwtTokenGenerator {
     }
 
     public String generateToken(String userName, List<String> roles){
-        log.info("generating token using secret" + secret);
         String roleDefinition = String.join(" ", roles);
         Key key = Keys.hmacShaKeyFor(Base64.getDecoder().decode(secret));
 
