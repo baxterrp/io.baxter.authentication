@@ -29,6 +29,12 @@ jobs:
       - name: Build & Test with Coverage
         run: ./gradlew clean build jacocoTestReport jacocoTestCoverageVerification --info
 
+      - name: Upload build output for Sonar
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: build/
+
       - name: Upload JaCoCo coverage artifact
         uses: actions/upload-artifact@v4
         with:
@@ -56,6 +62,12 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: gradle
+
+      - name: Download build output from previous job
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: build
 
       - name: Make Gradle wrapper executable
         run: chmod +x gradlew
