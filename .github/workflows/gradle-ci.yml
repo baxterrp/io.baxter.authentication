@@ -57,6 +57,9 @@ jobs:
           java-version: 21
           cache: gradle
 
+      - name: Make Gradle wrapper executable
+        run: chmod +x gradlew
+
       - name: Download coverage report from previous job
         uses: actions/download-artifact@v4
         with:
