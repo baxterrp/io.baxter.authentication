@@ -25,11 +25,12 @@ public class AccessServiceImpl implements AccessService{
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
-    private static final String refreshTokenFormat = "refresh_token:%s";
+
+    private static final String Refresh_Token_Format = "refresh_token:%s";
 
     @Override
     public Mono<RefreshTokenResponse> refreshAccessToken(String refreshToken) {
-        String fullRefreshTokenKey = String.format(refreshTokenFormat, refreshToken);
+        String fullRefreshTokenKey = String.format(Refresh_Token_Format, refreshToken);
         return redis.opsForValue().get(fullRefreshTokenKey)
                 .switchIfEmpty(Mono.error(new InvalidLoginException()))
                 .flatMap(token -> {
@@ -43,7 +44,7 @@ public class AccessServiceImpl implements AccessService{
                             .flatMap(res ->
                                     // set new token
                                     redis.opsForValue().set(
-                                            String.format(refreshTokenFormat, newRefreshTokenKey), newRefreshToken))
+                                            String.format(Refresh_Token_Format, newRefreshTokenKey), newRefreshToken))
                             .map(res ->
                                     // return refreshed access token with key
                                     new RefreshTokenResponse(newRefreshTokenKey, newAccessToken));
@@ -76,7 +77,7 @@ public class AccessServiceImpl implements AccessService{
 
                         var token = tokenGenerator.generateToken(request.getUserName(), roles);
                         var tokenId = UUID.randomUUID().toString();
-                        var refreshTokenKey = String.format(refreshTokenFormat, tokenId);
+                        var refreshTokenKey = String.format(Refresh_Token_Format, tokenId);
                         var refreshToken = generateRefreshToken(user.getUsername(), roles);
 
                         return redis.opsForValue().set(refreshTokenKey, refreshToken)
