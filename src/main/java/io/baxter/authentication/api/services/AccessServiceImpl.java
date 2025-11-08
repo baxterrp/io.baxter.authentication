@@ -37,7 +37,7 @@ public class AccessServiceImpl implements AccessService{
                 .flatMap(token -> {
                     if (token.getExpiresAt().toInstant().isBefore(Instant.now())){
                         return redis.opsForValue().delete(fullRefreshTokenKey)
-                                .flatMap(res -> Mono.error(new InvalidLoginException()));
+                                .then(Mono.error(new InvalidLoginException()));
                     }
 
                     // generate new access token and build new refresh token
@@ -47,13 +47,10 @@ public class AccessServiceImpl implements AccessService{
 
                     // delete refresh token from cache
                     return redis.opsForValue().delete(fullRefreshTokenKey)
-                            .flatMap(res ->
-                                    // set new token
-                                    redis.opsForValue().set(
-                                            String.format(REFRESH_TOKEN_FORMAT, newRefreshTokenKey), newRefreshToken))
-                            .map(res ->
-                                    // return refreshed access token with key
-                                    new RefreshTokenResponse(newRefreshTokenKey, newAccessToken));
+                            .then(redis
+                                    .opsForValue()
+                                    .set(String.format(REFRESH_TOKEN_FORMAT, newRefreshTokenKey), newRefreshToken))
+                            .thenReturn(new RefreshTokenResponse(newRefreshTokenKey, newAccessToken));
                 });
     }
 
