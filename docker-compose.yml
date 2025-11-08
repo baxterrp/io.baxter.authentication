@@ -20,15 +20,24 @@ services:
     container_name: authentication-api
     depends_on:
       - db
+      - redis
     environment:
       SPRING_R2DBC_URL: ${MYSQL_URL}
       SPRING_R2DBC_USERNAME: ${MYSQL_USER}
       SPRING_R2DBC_PASSWORD: ${MYSQL_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS}
+      SPRING_REDIS_HOST: authentication-redis
+      SPRING_REDIS_PORT: 6379
     ports:
       - ${API_PORTS}
     restart: unless-stopped
+
+  redis:
+    image: redis:7
+    container_name: authentication-redis
+    ports:
+      - "4000:6379"
 
 volumes:
   db_data:

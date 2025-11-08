@@ -72,8 +72,9 @@ class AccessControllerTest {
     void loginShouldReturnLoginResponseWhenLoginSuccessful(CapturedOutput output){
         // Arrange
         final String token = "abc123";
+        final String refreshToken = "123abc";
         final LoginRequest loginRequest = new LoginRequest(testUserName, testPassword);
-        final LoginResponse expectedResponse = new LoginResponse(testUserId, testUserName, testGlobalUserId, token);
+        final LoginResponse expectedResponse = new LoginResponse(testUserId, testUserName, testGlobalUserId, token, refreshToken);
 
         Mockito.when(mockAccessService.login(Mockito.argThat(loginRequestArgumentMatcher)))
                 .thenReturn(Mono.just(expectedResponse));
@@ -91,7 +92,7 @@ class AccessControllerTest {
                     assertThat(body.getId()).isEqualTo(testUserId);
                     assertThat(body.getUserName()).isEqualTo(testUserName);
                     assertThat(body.getUserId()).isEqualTo(testGlobalUserId);
-                    assertThat(body.getToken()).isEqualTo(token);
+                    assertThat(body.getAccessToken()).isEqualTo(token);
 
                     return true;
                 })

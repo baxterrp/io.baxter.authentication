@@ -2,6 +2,7 @@ package io.baxter.authentication.api.controllers;
 
 import io.baxter.authentication.api.models.*;
 import io.baxter.authentication.api.services.AccessService;
+import io.baxter.authentication.infrastructure.behavior.redis.RefreshTokenResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,11 @@ import reactor.core.publisher.Mono;
 public class AccessController {
     private final AccessService accessService;
 
+    @GetMapping("/refresh/{refreshToken}")
+    public Mono<ResponseEntity<RefreshTokenResponse>> getNewToken(@PathVariable String refreshToken){
+        return accessService.refreshAccessToken(refreshToken).map(ResponseEntity::ok);
+    }
+
     @PostMapping("/login")
     public Mono<ResponseEntity<LoginResponse>> login(@Valid @RequestBody LoginRequest request){
         log.info("attempting login for {}", request.getUserName());
@@ -25,7 +31,7 @@ public class AccessController {
         return accessService
                 .login(request)
                 .map(response -> {
-                    log.info("successfully logged in for user {} with token {}", request.getUserName(), response.getToken());
+                    log.info("successfully logged in for user {} with token {}", request.getUserName(), response.getAccessToken());
                     return ResponseEntity.ok().body(response);
                 })
                 .doOnError(exception ->

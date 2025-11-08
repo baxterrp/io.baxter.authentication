@@ -30,6 +30,7 @@ public class JwtTokenGenerator {
         Key key = Keys.hmacShaKeyFor(Base64.getDecoder().decode(secret));
 
         return Jwts.builder()
+                .setId(UUID.randomUUID().toString())
                 .setSubject(userName)
                 .claim("scope", roleDefinition)
                 .setIssuedAt(new Date())

@@ -10,5 +10,6 @@ public class LoginResponse {
     int id;
     String userName;
     UUID userId;
-    String token;
+    String accessToken;
+    String refreshToken;
 }

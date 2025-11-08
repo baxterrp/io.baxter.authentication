@@ -44,6 +44,9 @@ dependencies {
     // spring logging
     implementation("org.springframework.boot:spring-boot-starter-logging")
 
+    // spring redis connection
+    implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
+
     // reactive database stack
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("io.asyncer:r2dbc-mysql:1.1.0")

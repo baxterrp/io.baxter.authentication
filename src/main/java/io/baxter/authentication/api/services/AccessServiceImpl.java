@@ -1,35 +1,54 @@
 package io.baxter.authentication.api.services;
 
 import io.baxter.authentication.api.models.*;
-import io.baxter.authentication.data.models.RoleDataModel;
-import io.baxter.authentication.data.models.UserRoleDataModel;
-import io.baxter.authentication.data.repository.RoleRepository;
-import io.baxter.authentication.data.repository.UserRepository;
-import io.baxter.authentication.data.repository.UserRoleRepository;
-import io.baxter.authentication.infrastructure.behavior.exceptions.InvalidLoginException;
-import io.baxter.authentication.infrastructure.behavior.exceptions.ResourceExistsException;
-import io.baxter.authentication.infrastructure.auth.JwtTokenGenerator;
-import io.baxter.authentication.infrastructure.auth.PasswordEncryption;
-import io.baxter.authentication.data.models.UserDataModel;
-import io.baxter.authentication.infrastructure.behavior.exceptions.ResourceNotFoundException;
+import io.baxter.authentication.data.models.*;
+import io.baxter.authentication.data.repository.*;
+import io.baxter.authentication.infrastructure.auth.*;
+import io.baxter.authentication.infrastructure.behavior.exceptions.*;
+import io.baxter.authentication.infrastructure.behavior.redis.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.*;
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AccessServiceImpl implements AccessService{
+    private final ReactiveRedisTemplate<String, RefreshToken> redis;
     private final JwtTokenGenerator tokenGenerator;
+    private final PasswordEncryption passwordEncryption;
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
-    private final PasswordEncryption passwordEncryption;
+    private final String refreshTokenFormat = "refresh_token:%s";
+
+    @Override
+    public Mono<RefreshTokenResponse> refreshAccessToken(String refreshToken) {
+        String fullRefreshTokenKey = String.format(refreshTokenFormat, refreshToken);
+        return redis.opsForValue().get(fullRefreshTokenKey)
+                .switchIfEmpty(Mono.error(new InvalidLoginException()))
+                .flatMap(token -> {
+                    // generate new access token and build new refresh token
+                    var newAccessToken = tokenGenerator.generateToken(token.getUserName(), token.getRoles());
+                    var newRefreshToken = generateRefreshToken(token.getUserName(), token.getRoles());
+                    var newRefreshTokenKey = UUID.randomUUID().toString();
+
+                    // delete refresh token from cache
+                    return redis.opsForValue().delete(fullRefreshTokenKey)
+                            .flatMap(res ->
+                                    // set new token
+                                    redis.opsForValue().set(
+                                            String.format(refreshTokenFormat, newRefreshTokenKey), newRefreshToken))
+                            .map(res ->
+                                    // return refreshed access token with key
+                                    new RefreshTokenResponse(newRefreshTokenKey, newAccessToken));
+                });
+    }
 
     // find existing user by validating username and password, generating jwt token
     @Override
@@ -52,11 +71,27 @@ public class AccessServiceImpl implements AccessService{
                     })
                     .map(RoleDataModel::getName)
                     .collectList()
-                    .map(roles -> {
+                    .flatMap(roles -> {
                         log.info("found roles {}, generating token", roles);
-                        String token = tokenGenerator.generateToken(request.getUserName(), roles);
 
-                        return new LoginResponse(user.getId(), user.getUsername(), user.getUserId(), token);
+                        var token = tokenGenerator.generateToken(request.getUserName(), roles);
+                        var tokenId = UUID.randomUUID().toString();
+                        var refreshTokenKey = String.format(refreshTokenFormat, tokenId);
+                        var refreshToken = generateRefreshToken(user.getUsername(), roles);
+
+                        return redis.opsForValue().set(refreshTokenKey, refreshToken)
+                                .map(created -> {
+                                    if (!created){
+                                        log.error("unable to create refresh token for user {}", user.getUsername());
+                                    }
+
+                                    return new LoginResponse(
+                                            user.getId(),
+                                            user.getUsername(),
+                                            user.getUserId(),
+                                            token,
+                                            created ? tokenId : "");
+                                });
                     });
             });
     }
@@ -123,5 +158,12 @@ public class AccessServiceImpl implements AccessService{
                         });
                     });
             });
+    }
+
+    private static RefreshToken generateRefreshToken(String userName, List<String> roles){
+        var issuedDate = new Date();
+        var expiredDate = new Date(issuedDate.getTime() + (60 * 60 * 1000)); // 1 hour later
+
+        return new RefreshToken(userName, roles, issuedDate, expiredDate);
     }
 }

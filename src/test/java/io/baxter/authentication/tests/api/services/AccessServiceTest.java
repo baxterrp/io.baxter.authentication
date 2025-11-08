@@ -6,11 +6,13 @@ import io.baxter.authentication.data.models.*;
 import io.baxter.authentication.data.repository.*;
 import io.baxter.authentication.infrastructure.auth.*;
 import io.baxter.authentication.infrastructure.behavior.exceptions.*;
+import io.baxter.authentication.infrastructure.behavior.redis.RefreshToken;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.boot.test.system.*;
+import org.springframework.data.redis.core.*;
 import reactor.core.publisher.*;
 import reactor.test.StepVerifier;
 
@@ -35,6 +37,12 @@ class AccessServiceTest {
 
     @Mock
     private JwtTokenGenerator mockTokenGenerator;
+
+    @Mock
+    private ReactiveRedisTemplate<String, RefreshToken> mockRedisCache;
+
+    @Mock
+    ReactiveValueOperations<String, RefreshToken> mockValueOps;
 
     @InjectMocks
     private AccessServiceImpl accessService;
@@ -134,6 +142,8 @@ class AccessServiceTest {
         Mockito.when(mockRoleRepository.findById(1)).thenReturn(Mono.just(roleDataModels.getFirst()));
         Mockito.when(mockRoleRepository.findById(2)).thenReturn(Mono.just(roleDataModels.get(1)));
         Mockito.when(mockTokenGenerator.generateToken(testUserName, validRoles)).thenReturn(token);
+        Mockito.when(mockRedisCache.opsForValue()).thenReturn(mockValueOps);
+        Mockito.when(mockValueOps.set(Mockito.anyString(), Mockito.any())).thenReturn(Mono.just(true));
 
         // Act
         Mono<LoginResponse> response = accessService.login(request);
@@ -150,6 +160,8 @@ class AccessServiceTest {
         Mockito.verify(mockRoleRepository).findById(1);
         Mockito.verify(mockRoleRepository).findById(2);
         Mockito.verify(mockTokenGenerator).generateToken(testUserName, validRoles);
+        Mockito.verify(mockRedisCache).opsForValue();
+        BDDMockito.verify(mockValueOps).set(Mockito.anyString(), Mockito.any());
         Mockito.verifyNoMoreInteractions(mockUserRepository);
 
         String logs = output.getOut();
