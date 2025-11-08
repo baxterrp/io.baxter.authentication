@@ -12,6 +12,7 @@ import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.*;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -34,6 +35,11 @@ public class AccessServiceImpl implements AccessService{
         return redis.opsForValue().get(fullRefreshTokenKey)
                 .switchIfEmpty(Mono.error(new InvalidLoginException()))
                 .flatMap(token -> {
+                    if (token.getExpiresAt().toInstant().isBefore(Instant.now())){
+                        return redis.opsForValue().delete(fullRefreshTokenKey)
+                                .flatMap(res -> Mono.error(new InvalidLoginException()));
+                    }
+
                     // generate new access token and build new refresh token
                     var newAccessToken = tokenGenerator.generateToken(token.getUserName(), token.getRoles());
                     var newRefreshToken = generateRefreshToken(token.getUserName(), token.getRoles());
