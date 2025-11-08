@@ -25,7 +25,7 @@ public class AccessServiceImpl implements AccessService{
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
-    private final String refreshTokenFormat = "refresh_token:%s";
+    private static final String refreshTokenFormat = "refresh_token:%s";
 
     @Override
     public Mono<RefreshTokenResponse> refreshAccessToken(String refreshToken) {
