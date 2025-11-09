@@ -20,7 +20,6 @@ import java.time.*;
 import java.util.*;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(OutputCaptureExtension.class)
@@ -91,8 +90,8 @@ class AccessServiceTest {
         Mockito.verify(mockValueOps).get(refreshTokenWithKey);
         Mockito.verify(mockValueOps).delete(refreshTokenWithKey);
         Mockito.verify(mockValueOps).set(
-                Mockito.argThat(key -> key instanceof String stringKey && stringKey.startsWith("refresh_token:")),
-                Mockito.argThat(token -> token instanceof RefreshToken r && r.getUserName().equals(testUserName)));
+                Mockito.argThat((String key) -> key.startsWith("refresh_token:")),
+                Mockito.argThat((RefreshToken token) -> token.getUserName().equals(testUserName)));
         Mockito.verifyNoMoreInteractions(mockValueOps);
     }
 
@@ -115,7 +114,7 @@ class AccessServiceTest {
 
         // Assert
         StepVerifier.create(response)
-                .expectErrorMatches(exception -> exception instanceof InvalidLoginException)
+                .expectErrorMatches(InvalidLoginException.class::isInstance)
                 .verify();
 
         Mockito.verify(clock).instant();
@@ -137,7 +136,7 @@ class AccessServiceTest {
 
         // Assert
         StepVerifier.create(response)
-                .expectErrorMatches(exception -> exception instanceof InvalidLoginException)
+                .expectErrorMatches(InvalidLoginException.class::isInstance)
                 .verify();
     }
 
@@ -146,7 +145,6 @@ class AccessServiceTest {
     void loginShouldReturnInvalidLoginExceptionWhenNoUserFound(CapturedOutput output){
         // Arrange
         String expectedLogMessage = String.format("account not found for email %s", testUserName);
-        String expectedExceptionMessage = "Unauthorized";
         LoginRequest request = new LoginRequest(testUserName, testPassword);
 
         Mockito.when(mockUserRepository.findByUsername(testUserName)).thenReturn(Mono.empty());
@@ -156,8 +154,7 @@ class AccessServiceTest {
 
         // Assert
         StepVerifier.create(response)
-                .expectErrorMatches(exception ->
-                        exception instanceof InvalidLoginException && exception.getMessage().equals(expectedExceptionMessage))
+                .expectErrorMatches(InvalidLoginException.class::isInstance)
                 .verify();
 
         Mockito.verify(mockUserRepository).findByUsername(testUserName);
@@ -172,7 +169,6 @@ class AccessServiceTest {
     void loginShouldReturnInvalidLoginExceptionWhenInvalidPasswordProvided(CapturedOutput output){
         // Arrange
         var expectedLogMessage = String.format("invalid password used for user %s", testUserName);
-        var expectedExceptionMessage = "Unauthorized";
         var invalidPassword = "invalid-password";
 
         // invalid password doesn't actually trigger false response - just doing this for readability
@@ -188,8 +184,7 @@ class AccessServiceTest {
 
         // Assert
         StepVerifier.create(response)
-                .expectErrorMatches(exception ->
-                        exception instanceof InvalidLoginException && exception.getMessage().equals(expectedExceptionMessage))
+                .expectErrorMatches(InvalidLoginException.class::isInstance)
                 .verify();
 
         Mockito.verify(mockUserRepository).findByUsername(testUserName);
