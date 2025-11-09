@@ -12,7 +12,7 @@ import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.*;
 
-import java.time.Instant;
+import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -23,6 +23,7 @@ public class AccessServiceImpl implements AccessService{
     private final ReactiveRedisTemplate<String, RefreshToken> redis;
     private final JwtTokenGenerator tokenGenerator;
     private final PasswordEncryption passwordEncryption;
+    private final Clock clock;
     private final UserRepository userRepository;
     private final UserRoleRepository userRoleRepository;
     private final RoleRepository roleRepository;
@@ -31,12 +32,15 @@ public class AccessServiceImpl implements AccessService{
 
     @Override
     public Mono<RefreshTokenResponse> refreshAccessToken(String refreshToken) {
-        String fullRefreshTokenKey = String.format(REFRESH_TOKEN_FORMAT, refreshToken);
-        return redis.opsForValue().get(fullRefreshTokenKey)
+        var fullRefreshTokenKey = String.format(REFRESH_TOKEN_FORMAT, refreshToken);
+        var memoryCache = redis.opsForValue();
+
+        return memoryCache.get(fullRefreshTokenKey)
                 .switchIfEmpty(Mono.error(new InvalidLoginException()))
                 .flatMap(token -> {
-                    if (token.getExpiresAt().toInstant().isBefore(Instant.now())){
-                        return redis.opsForValue().delete(fullRefreshTokenKey)
+                    // delete token and return error if refresh token is expired
+                    if (token.getExpiresAt().toInstant().isBefore(Instant.now(clock))){
+                        return memoryCache.delete(fullRefreshTokenKey)
                                 .then(Mono.error(new InvalidLoginException()));
                     }
 
@@ -46,10 +50,8 @@ public class AccessServiceImpl implements AccessService{
                     var newRefreshTokenKey = UUID.randomUUID().toString();
 
                     // delete refresh token from cache
-                    return redis.opsForValue().delete(fullRefreshTokenKey)
-                            .then(redis
-                                    .opsForValue()
-                                    .set(String.format(REFRESH_TOKEN_FORMAT, newRefreshTokenKey), newRefreshToken))
+                    return memoryCache.delete(fullRefreshTokenKey)
+                            .then(memoryCache.set(String.format(REFRESH_TOKEN_FORMAT, newRefreshTokenKey), newRefreshToken))
                             .thenReturn(new RefreshTokenResponse(newRefreshTokenKey, newAccessToken));
                 });
     }

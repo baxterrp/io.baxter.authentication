@@ -16,37 +16,28 @@ import org.springframework.data.redis.core.*;
 import reactor.core.publisher.*;
 import reactor.test.StepVerifier;
 
-import java.util.List;
+import java.time.*;
+import java.util.*;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(OutputCaptureExtension.class)
 class AccessServiceTest {
-    @Mock
-    private UserRepository mockUserRepository;
+    @Mock private UserRepository mockUserRepository;
+    @Mock private UserRoleRepository mockUserRoleRepository;
+    @Mock private RoleRepository mockRoleRepository;
+    @Mock private PasswordEncryption mockPasswordEncryption;
+    @Mock private JwtTokenGenerator mockTokenGenerator;
+    @Mock private ReactiveRedisTemplate<String, RefreshToken> mockRedisCache;
+    @Mock private Clock clock;
+    @Mock ReactiveValueOperations<String, RefreshToken> mockValueOps;
 
-    @Mock
-    private UserRoleRepository mockUserRoleRepository;
+    @InjectMocks private AccessServiceImpl accessService;
 
-    @Mock
-    private RoleRepository mockRoleRepository;
-
-    @Mock
-    private PasswordEncryption mockPasswordEncryption;
-
-    @Mock
-    private JwtTokenGenerator mockTokenGenerator;
-
-    @Mock
-    private ReactiveRedisTemplate<String, RefreshToken> mockRedisCache;
-
-    @Mock
-    ReactiveValueOperations<String, RefreshToken> mockValueOps;
-
-    @InjectMocks
-    private AccessServiceImpl accessService;
-
+    private final String refreshToken = "872bab23-6d67-4946-9144-07ecf0550134";
+    private final String refreshTokenWithKey = String.format("refresh_token:%s", refreshToken);
     private final String testUserName = "test-user";
     private final String testPassword = "TestPassword123$$";
     private final Integer userId = 1;
@@ -65,6 +56,92 @@ class AccessServiceTest {
             validRoles.stream().anyMatch(validRole -> validRole.equals(role));
 
     @Test
+    @DisplayName("refreshAccessToken should return an new valid access token when refresh token exists and is not expired")
+    void refreshAccessTokenShouldReturnNewRefreshTokenAndAccessTokenWhenSuccessful(){
+        // Arrange
+        var accessToken = "22e73eb1-6f8a-4f43-a5dd-24b651b6f51d";
+        var frozen = Instant.parse("2025-11-08T12:00:00Z");
+        var expiration = Instant.parse("2026-11-08T12:00:00Z");
+        var tokenDate = Date.from(expiration);
+        var refreshTokenResponse = new RefreshToken(testUserName, validRoles, tokenDate, tokenDate);
+
+        Mockito.when(clock.instant()).thenReturn(frozen);
+        Mockito.when(mockRedisCache.opsForValue()).thenReturn(mockValueOps);
+        Mockito.when(mockValueOps.get(refreshTokenWithKey)).thenReturn(Mono.just(refreshTokenResponse));
+        Mockito.when(mockTokenGenerator.generateToken(testUserName, validRoles)).thenReturn(accessToken);
+        Mockito.when(mockValueOps.delete(refreshTokenWithKey)).thenReturn(Mono.just(true));
+        Mockito.when(mockValueOps
+                        .set(
+                                Mockito.argThat(key -> key.startsWith("refresh_token:")),
+                                Mockito.argThat(token -> token.getUserName().equals(testUserName))))
+                        .thenReturn(Mono.just(true));
+
+        // Act
+        var response = accessService.refreshAccessToken(refreshToken);
+
+        // Assert
+        StepVerifier.create(response)
+                .expectNextMatches(token ->
+                        token.getAccessToken().equals(accessToken) &&
+                        !token.getRefreshToken().isEmpty() &&
+                        !token.getRefreshToken().equals(refreshToken))
+                .verifyComplete()   ;
+
+        Mockito.verify(clock).instant();
+        Mockito.verify(mockValueOps).get(refreshTokenWithKey);
+        Mockito.verify(mockValueOps).delete(refreshTokenWithKey);
+        Mockito.verify(mockValueOps).set(
+                Mockito.argThat(key -> key instanceof String stringKey && stringKey.startsWith("refresh_token:")),
+                Mockito.argThat(token -> token instanceof RefreshToken r && r.getUserName().equals(testUserName)));
+        Mockito.verifyNoMoreInteractions(mockValueOps);
+    }
+
+    @Test
+    @DisplayName("refreshAccessToken should return an invalid login exception if the provided refresh token is expired")
+    void refreshAccessTokenShouldReturnInvalidLoginExceptionWhenTokenIsExpired(){
+        // Arrange
+        var frozen = Instant.parse("2025-11-08T12:00:00Z");
+        var expiration = Instant.parse("2024-11-08T12:00:00Z");
+        var tokenDate = Date.from(expiration);
+        var refreshTokenResponse = new RefreshToken(testUserName, validRoles, tokenDate, tokenDate);
+
+        Mockito.when(clock.instant()).thenReturn(frozen);
+        Mockito.when(mockRedisCache.opsForValue()).thenReturn(mockValueOps);
+        Mockito.when(mockValueOps.get(refreshTokenWithKey)).thenReturn(Mono.just(refreshTokenResponse));
+        Mockito.when(mockValueOps.delete(refreshTokenWithKey)).thenReturn(Mono.just(true));
+
+        // Act
+        var response = accessService.refreshAccessToken(refreshToken);
+
+        // Assert
+        StepVerifier.create(response)
+                .expectErrorMatches(exception -> exception instanceof InvalidLoginException)
+                .verify();
+
+        Mockito.verify(clock).instant();
+        Mockito.verify(mockValueOps).get(refreshTokenWithKey);
+        Mockito.verify(mockValueOps).delete(refreshTokenWithKey);
+        Mockito.verifyNoMoreInteractions(mockRedisCache);
+        Mockito.verifyNoMoreInteractions(mockValueOps);
+    }
+
+    @Test
+    @DisplayName("refreshAccessToken when no token cached returns an invalid login exception")
+    void refreshAccessTokenShouldReturnInvalidLoginExceptionWhenNoCachedTokenFound(){
+        // Arrange
+        Mockito.when(mockRedisCache.opsForValue()).thenReturn(mockValueOps);
+        Mockito.when(mockValueOps.get(refreshTokenWithKey)).thenReturn(Mono.empty());
+
+        // Act
+        var response = accessService.refreshAccessToken(refreshToken);
+
+        // Assert
+        StepVerifier.create(response)
+                .expectErrorMatches(exception -> exception instanceof InvalidLoginException)
+                .verify();
+    }
+
+    @Test
     @DisplayName("if no user is found when logging in an InvalidLoginException should be returned")
     void loginShouldReturnInvalidLoginExceptionWhenNoUserFound(CapturedOutput output){
         // Arrange
@@ -75,7 +152,7 @@ class AccessServiceTest {
         Mockito.when(mockUserRepository.findByUsername(testUserName)).thenReturn(Mono.empty());
 
         // Act
-        Mono<LoginResponse> response = accessService.login(request);
+        var response = accessService.login(request);
 
         // Assert
         StepVerifier.create(response)
@@ -94,20 +171,20 @@ class AccessServiceTest {
     @DisplayName("if invalid password provided when logging in an InvalidLoginException should be returned")
     void loginShouldReturnInvalidLoginExceptionWhenInvalidPasswordProvided(CapturedOutput output){
         // Arrange
-        String expectedLogMessage = String.format("invalid password used for user %s", testUserName);
-        String expectedExceptionMessage = "Unauthorized";
-        String invalidPassword = "invalid-password";
+        var expectedLogMessage = String.format("invalid password used for user %s", testUserName);
+        var expectedExceptionMessage = "Unauthorized";
+        var invalidPassword = "invalid-password";
 
         // invalid password doesn't actually trigger false response - just doing this for readability
-        LoginRequest request = new LoginRequest(testUserName, invalidPassword);
-        UserDataModel userDataModel = new UserDataModel(testUserName, testPassword);
+        var request = new LoginRequest(testUserName, invalidPassword);
+        var userDataModel = new UserDataModel(testUserName, testPassword);
         userDataModel.setId(userId);
 
         Mockito.when(mockUserRepository.findByUsername(testUserName)).thenReturn(Mono.just(userDataModel));
         Mockito.when(mockPasswordEncryption.verify(invalidPassword, testPassword)).thenReturn(false);
 
         // Act
-        Mono<LoginResponse> response = accessService.login(request);
+        var response = accessService.login(request);
 
         // Assert
         StepVerifier.create(response)
@@ -127,13 +204,13 @@ class AccessServiceTest {
     @DisplayName("if valid username and password provided, roles should be looked up and jwt token generated")
     void loginShouldReturnLoginResponseWhenValidLoginRequestProvided(CapturedOutput output){
         // Arrange
-        String roleString = String.join(", ", validRoles);
-        String lookingUpRolesLogMessage = String.format("found user %s, looking up roles", testUserName);
-        String foundRolesLogMessage = String.format("found roles [%s], generating token", roleString);
-        String token = "abc123";
+        var roleString = String.join(", ", validRoles);
+        var lookingUpRolesLogMessage = String.format("found user %s, looking up roles", testUserName);
+        var foundRolesLogMessage = String.format("found roles [%s], generating token", roleString);
+        var token = "abc123";
 
-        LoginRequest request = new LoginRequest(testUserName, testPassword);
-        UserDataModel userDataModel = new UserDataModel(testUserName, testPassword);
+        var request = new LoginRequest(testUserName, testPassword);
+        var userDataModel = new UserDataModel(testUserName, testPassword);
         userDataModel.setId(userId);
 
         Mockito.when(mockUserRepository.findByUsername(testUserName)).thenReturn(Mono.just(userDataModel));
@@ -146,7 +223,7 @@ class AccessServiceTest {
         Mockito.when(mockValueOps.set(Mockito.anyString(), Mockito.any())).thenReturn(Mono.just(true));
 
         // Act
-        Mono<LoginResponse> response = accessService.login(request);
+        var response = accessService.login(request);
 
         // Assert
         StepVerifier.create(response)
@@ -174,14 +251,14 @@ class AccessServiceTest {
     @DisplayName("on register, user name is already used a ResourceExistsException should be returned")
     void registerShouldReturnResourceExistsExceptionWhenUserNameFound(CapturedOutput output){
         // Arrange
-        String expectedExceptionMessage = String.format("User already exists with value %s", testUserName);
-        String expectedLogErrorMessage = String.format("user already exists with name %s", testUserName);
-        RegistrationRequest request = new RegistrationRequest(testUserName, testPassword, validRoles.toArray(String[]::new));
+        var expectedExceptionMessage = String.format("User already exists with value %s", testUserName);
+        var expectedLogErrorMessage = String.format("user already exists with name %s", testUserName);
+        var request = new RegistrationRequest(testUserName, testPassword, validRoles.toArray(String[]::new));
 
         Mockito.when(mockUserRepository.existsByUsername(testUserName)).thenReturn(Mono.just(true));
 
         // Act
-        Mono<RegistrationResponse> response = accessService.register(request);
+        var response = accessService.register(request);
 
         // Assert
         StepVerifier.create(response)
@@ -201,14 +278,14 @@ class AccessServiceTest {
     @Test
     @DisplayName("on register, if provided roles are not found a ResourceNotFoundException should be returned")
     void registerShouldReturnResourceNotFoundExceptionWhenNoRolesFound(CapturedOutput output){
-        String expectedExceptionMessage = String.format("No role found with id %s", validRoles.getFirst());
-        RegistrationRequest request = new RegistrationRequest(testUserName, testPassword, validRoles.toArray(String[]::new));
+        var expectedExceptionMessage = String.format("No role found with id %s", validRoles.getFirst());
+        var request = new RegistrationRequest(testUserName, testPassword, validRoles.toArray(String[]::new));
 
         Mockito.when(mockUserRepository.existsByUsername(testUserName)).thenReturn(Mono.just(false));
         Mockito.when(mockRoleRepository.findByName(Mockito.argThat(roleArgumentMatcher))).thenReturn(Mono.empty());
 
         // Act
-        Mono<RegistrationResponse> response = accessService.register(request);
+        var response = accessService.register(request);
 
         // Assert
         StepVerifier.create(response)
@@ -220,7 +297,7 @@ class AccessServiceTest {
         Mockito.verify(mockRoleRepository).findByName(validRoles.getFirst());
         Mockito.verifyNoMoreInteractions(mockUserRepository);
 
-        String logs = output.getOut();
+        var logs = output.getOut();
         assertThat(logs)
                 .contains(registerLogMessage)
                 .contains(validatingRolesLogMessage);
@@ -229,12 +306,12 @@ class AccessServiceTest {
     @Test
     @DisplayName("on register, valid registration provided with valid roles, a registration response is returned")
     void registerShouldReturnRegistrationResponseWhenValidCredentialsProvided(CapturedOutput output){
-        String roleString = String.join(",", validRoles);
-        String savingUserLogMessage = String.format("saving user %s with roles %s", testUserName, roleString);
-        String savedUserLogMessage = String.format("saved user %s", testUserName);
+        var roleString = String.join(",", validRoles);
+        var savingUserLogMessage = String.format("saving user %s with roles %s", testUserName, roleString);
+        var savedUserLogMessage = String.format("saved user %s", testUserName);
 
-        RegistrationRequest request = new RegistrationRequest(testUserName, testPassword, validRoles.toArray(String[]::new));
-        UserDataModel user = new UserDataModel(testUserName, testPassword);
+        var request = new RegistrationRequest(testUserName, testPassword, validRoles.toArray(String[]::new));
+        var user = new UserDataModel(testUserName, testPassword);
         user.setId(userId);
 
         ArgumentMatcher<UserRoleDataModel> roleOneDataModelMatcher = role -> role != null && role.getRoleId().equals(userRoleDataModels.getFirst().getRoleId());
@@ -248,7 +325,7 @@ class AccessServiceTest {
         Mockito.when(mockUserRoleRepository.save(Mockito.argThat(roleTwoDataModelMatcher))).thenReturn(Mono.empty());
 
         // Act
-        Mono<RegistrationResponse> response = accessService.register(request);
+        var response = accessService.register(request);
 
         // Assert
         StepVerifier.create(response).expectNextMatches(registration ->
@@ -263,7 +340,7 @@ class AccessServiceTest {
         Mockito.verify(mockUserRoleRepository).save(Mockito.argThat(role -> role.getRoleId().equals(userRoleDataModels.get(1).getRoleId())));
         Mockito.verifyNoMoreInteractions(mockUserRepository);
 
-        String logs = output.getOut();
+        var logs = output.getOut();
         assertThat(logs)
                 .contains(registerLogMessage)
                 .contains(validatingRolesLogMessage)

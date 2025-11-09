@@ -3,6 +3,7 @@ package io.baxter.authentication.tests.api.controllers;
 import io.baxter.authentication.api.controllers.AccessController;
 import io.baxter.authentication.api.models.*;
 import io.baxter.authentication.api.services.AccessService;
+import io.baxter.authentication.infrastructure.behavior.redis.RefreshTokenResponse;
 import org.junit.jupiter.api.*;
 import org.mockito.*;
 import org.springframework.boot.test.system.CapturedOutput;
@@ -39,11 +40,38 @@ class AccessControllerTest {
     }
 
     @Test
+    @DisplayName("getNewToken returns ok response with token response")
+    void getNewTokenShouldGenerateRefreshTokenAndReturn200(){
+        // Arrange
+        final var accessToken = "659db705-0aa4-43ca-a7d6-ed4bb9e5e22f";
+        final var refreshToken = "b1323794-0887-48f7-8255-43f5f07c9d05";
+        final var tokenResponse = new RefreshTokenResponse(accessToken, refreshToken);
+
+        Mockito.when(mockAccessService.refreshAccessToken(refreshToken))
+                .thenReturn(Mono.just(tokenResponse));
+
+        // Act
+        var response = accessController.getNewToken(refreshToken);
+
+        // Assert
+        StepVerifier.create(response)
+                        .expectNextMatches(res -> {
+                            var token = res.getBody();
+                            return token != null &&
+                                    token.getRefreshToken().equals(refreshToken) &&
+                                    token.getAccessToken().equals(accessToken);
+                        });
+
+        Mockito.verify(mockAccessService).refreshAccessToken(refreshToken);
+        Mockito.verifyNoMoreInteractions(mockAccessService);
+    }
+
+    @Test
     @DisplayName("Login when service throws exception, logs and throws")
     void loginShouldLogExceptionAndThrowWhenServiceFails(CapturedOutput output){
         // Arrange
-        final String exceptionMessage = "Test error 123";
-        final LoginRequest loginRequest = new LoginRequest(testUserName, testPassword);
+        final var exceptionMessage = "Test error 123";
+        final var loginRequest = new LoginRequest(testUserName, testPassword);
 
         Mockito.when(mockAccessService.login(Mockito.argThat(loginRequestArgumentMatcher)))
                 .thenReturn(Mono.error(new RuntimeException(exceptionMessage)));
@@ -71,10 +99,10 @@ class AccessControllerTest {
     @DisplayName("Login with valid credentials returns a user id and access token")
     void loginShouldReturnLoginResponseWhenLoginSuccessful(CapturedOutput output){
         // Arrange
-        final String token = "abc123";
-        final String refreshToken = "123abc";
-        final LoginRequest loginRequest = new LoginRequest(testUserName, testPassword);
-        final LoginResponse expectedResponse = new LoginResponse(testUserId, testUserName, testGlobalUserId, token, refreshToken);
+        final var accessToken = "659db705-0aa4-43ca-a7d6-ed4bb9e5e22f";
+        final var refreshToken = "b1323794-0887-48f7-8255-43f5f07c9d05";
+        final var loginRequest = new LoginRequest(testUserName, testPassword);
+        final var expectedResponse = new LoginResponse(testUserId, testUserName, testGlobalUserId, accessToken, refreshToken);
 
         Mockito.when(mockAccessService.login(Mockito.argThat(loginRequestArgumentMatcher)))
                 .thenReturn(Mono.just(expectedResponse));
@@ -92,7 +120,7 @@ class AccessControllerTest {
                     assertThat(body.getId()).isEqualTo(testUserId);
                     assertThat(body.getUserName()).isEqualTo(testUserName);
                     assertThat(body.getUserId()).isEqualTo(testGlobalUserId);
-                    assertThat(body.getAccessToken()).isEqualTo(token);
+                    assertThat(body.getAccessToken()).isEqualTo(accessToken);
 
                     return true;
                 })
@@ -104,15 +132,15 @@ class AccessControllerTest {
         String logs = output.getOut();
         assertThat(logs)
                 .contains(String.format("attempting login for %s", testUserName))
-                .contains(String.format("successfully logged in for user %s with token %s", testUserName, token));
+                .contains(String.format("successfully logged in for user %s with token %s", testUserName, accessToken));
     }
 
     @Test
     @DisplayName("Logs a success message and returns id and name when AccessService.register completes successfully")
     void shouldReturnIdAndNameWhenRegistrationSuccessful(CapturedOutput output){
         // Arrange
-        final RegistrationRequest request = new RegistrationRequest(testUserName, testPassword, testRoles);
-        final RegistrationResponse registrationResponse = new RegistrationResponse(testUserName, testUserId);
+        final var request = new RegistrationRequest(testUserName, testPassword, testRoles);
+        final var registrationResponse = new RegistrationResponse(testUserName, testUserId);
 
         Mockito.when(mockAccessService.register(Mockito.argThat(registrationRequestMatcher)))
                 .thenReturn(Mono.just(registrationResponse));
@@ -147,9 +175,9 @@ class AccessControllerTest {
     @DisplayName("Logs an exception message when AccessService.register throws an exception")
     void shouldLogErrorWhenAccessServiceFails(CapturedOutput output){
         // Arrange
-        final String exceptionMessage = "test message 123";
-        final String expectedLogMessage = String.format("failed registration attempt for username %s with error %s", testUserName, exceptionMessage);
-        final RegistrationRequest request = new RegistrationRequest(testUserName, testPassword, testRoles);
+        final var exceptionMessage = "test message 123";
+        final var expectedLogMessage = String.format("failed registration attempt for username %s with error %s", testUserName, exceptionMessage);
+        final var request = new RegistrationRequest(testUserName, testPassword, testRoles);
 
         Mockito.when(mockAccessService.register(Mockito.argThat(registrationRequestMatcher)))
                 .thenReturn(Mono.error(new RuntimeException(exceptionMessage)));
