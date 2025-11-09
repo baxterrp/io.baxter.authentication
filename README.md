@@ -2,6 +2,7 @@
 
 A reactive authentication and registration microservice built with **Spring Boot (WebFlux)** and **R2DBC (MySQL)**.
 The service provides endpoints for user registration and login with **JWT-based authentication**, using non-blocking reactive programming.
+Now includes secure rotating refresh token sessions backed by Redis.
 
 ---
 
@@ -23,13 +24,14 @@ You can view the full OpenAPI specification here:
 ## 🚀 Features
 
 - Reactive and non-blocking using **Spring WebFlux**
-- JWT authentication for stateless security
+- JWT authentication for stateless access token validation
+- **Rotating refresh token support stored in Redis**
 - Secure password hashing with **BCrypt**
-- Role-based access system (Users ↔ Roles)
-- Centralized exception handling for clean API responses
-- **MySQL** integration via **R2DBC**
-- Containerized using **Docker Compose**
-- Configurable via environment variables
+- Role-based access control
+- Centralized exception handling for consistent API error responses
+- **MySQL** via **R2DBC** (fully non-blocking)
+- Containerized with **Docker Compose**
+- Environment-based configuration for portability
 
 ---
 
@@ -37,36 +39,65 @@ You can view the full OpenAPI specification here:
 
 ```
 io.baxter.authentication
-├── .github
-|   ├── workflows
-|   |   └── gradle-ci.yml  # github actions pipeline for build, test, code coverage report
 ├── api
-│   ├── controllers        # REST endpoints (AccessController)
-│   ├── models             # Request/Response DTOs
-│   └── services           # AccessService interface + implementation
+│ ├── controllers # REST endpoints (login, register, refresh)
+│ ├── models # Request/Response DTOs
+│ └── services # AccessService interface + AccessServiceImpl
 ├── data
-│   ├── models             # R2DBC entity models (UserDataModel, RoleDataModel)
-│   └── repository         # Reactive repositories (UserRepository, RoleRepository, etc.)
+│ ├── models # UserDataModel, RoleDataModel, UserRoleDataModel
+│ └── repository # Reactive R2DBC repositories
 ├── infrastructure
-│   ├── auth               # JWT token generation + password encryption
-│   └── behavior           # Exception handling and domain-specific exceptions
+│ ├── auth # JwtTokenGenerator, PasswordEncryption, Security config
+│ ├── behavior
+│ │ ├── exceptions # Domain + validation exceptions
+│ │ ├── handlers # Global exception handling
+│ │ └── helper # Shared utilities (e.g., factory helpers)
+│ ├── redis # Reactive Redis config + token serialization
+│ └── config # OpenAPI config, DateTime Clock config
+├── src/main/resources
+│ └── application.properties
 ├── docker-compose.yml
-└── src/main/resources/application.properties
+└── Application.java
 ```
+---
+## 🔁 Refresh Token Flow
 
+**On login**
+- Generate short-lived **Access Token (JWT)**
+- Generate long-lived **Refresh Token ID** (UUID)
+- **Store in Redis**:
+    - **key:** `refresh_token:{id}`
+    - **value:** `{ username, roles[], issuedAt, expiresAt }`
+    - **TTL:** matches refresh lifetime (e.g., 30 days)
+- Return `{ accessToken, refreshTokenId }` to the client
+
+**On refresh**
+1. Client sends `refreshTokenId`
+2. Load `refresh_token:{id}` from Redis
+3. If missing → **401**
+4. If `expiresAt` < **now** → delete Redis key → **401**
+5. Generate **new access token**
+6. **Rotate** refresh token:
+    - Create **new** `refreshTokenId`
+    - Save new Redis value with TTL
+    - Delete **old** Redis key
+7. Return `{ accessToken, refreshTokenId: newId }`
 ---
 
 ## ⚙️ Technology Stack
-
-| Component | Technology |
-|-----------|------------|
-| Language | Java 17+ |
-| Framework | Spring Boot 3.5.x (WebFlux) |
-| Database | MySQL 8 (Reactive via R2DBC) |
-| Security | JWT + BCrypt |
-| Build Tool | Gradle Kotlin DSL |
-| Reactive Engine | Project Reactor (Mono / Flux) |
-| Containerization | Docker & Docker Compose |
+| Layer | Technology |
+|------|------------|
+| Language | **Java 21** |
+| Framework | **Spring Boot 3.5+** (WebFlux) |
+| Reactive Engine | **Project Reactor (Mono / Flux)** |
+| Security | **JWT (HS256)** for access tokens, **BCrypt** for password hashing |
+| Refresh Token Store | **Redis 7** (Reactive RedisTemplate) |
+| Database | **MySQL 8** (R2DBC Reactive Driver) |
+| Build Tool | **Gradle 8.7+** (Kotlin DSL) |
+| API Documentation | **OpenAPI / Swagger** (springdoc-openapi) |
+| Configuration | Environment-based (`application.properties` + Docker `.env`) |
+| Containerization | **Docker & Docker Compose** |
+| CI/CD | **GitHub Actions** + Codecov + SonarCloud |
 
 ---
 
@@ -76,16 +107,20 @@ Environment variables are used for flexibility.
 `application.properties` expects:
 
 ```
-spring.application.name=io.baxter.api
+spring.application.name=io.baxter.authentication
 
 spring.r2dbc.url=${SPRING_R2DBC_URL}
 spring.r2dbc.username=${SPRING_R2DBC_USERNAME}
 spring.r2dbc.password=${SPRING_R2DBC_PASSWORD}
-jwt.secret=${JWT_SECRET}
+spring.security.oauth2.resourceserver.jwt.secret-key=${JWT_SECRET}
+
 jwt.expiration-ms=${JWT_EXPIRATION_MS}
 
 logging.level.root=INFO
 logging.level.io.baxter=DEBUG
+
+spring.data.redis.host=${SPRING_REDIS_HOST}
+spring.data.redis.port=${SPRING_REDIS_PORT}
 ```
 
 ---
@@ -105,7 +140,8 @@ MYSQL_URL=r2dbc:mysql://db:3306/authentication_db
 JWT_SECRET=supersecretkey
 JWT_EXPIRATION_MS=3600000
 
-API_PORTS=8080:8080
+API_URL=http://localhost:9000
+API_PORTS=9000:8080
 
 COMPOSE_PROJECT_NAME=auth
 ```
@@ -116,6 +152,7 @@ COMPOSE_PROJECT_NAME=auth
 docker compose up --build
 ```
 
+- Redis container: `authenticaiton-redis`
 - MySQL container: `authentication-db`
 - API container: `authentication-api`
 - API available at: `http://localhost:8080/api/auth`
@@ -127,37 +164,12 @@ docker compose up --build
 If you prefer to run without Docker:
 
 1. Start a local MySQL database.
-2. Set environment variables or edit `application.properties`:
-
-```
-spring.application.name=io.baxter.api
-
-spring.r2dbc.url=r2dbc:mysql://localhost:3306/authentication_db
-spring.r2dbc.username=authuser
-spring.r2dbc.password=authpass
-jwt.secret=yoursecret
-jwt.expiration-ms=3600000
-
-logging.level.root=INFO
-logging.level.io.baxter=DEBUG
-```
-
+2. Set environment variables or edit `application.properties`
 3. Run the application with Gradle:
 
 ```bash
 ./gradlew bootRun
 ```
-
----
-
-## 🧩 Design Notes
-
-- `AccessServiceImpl` handles registration and login logic.
-- Passwords are hashed via `PasswordEncryption` (BCrypt).
-- JWTs are generated using `JwtTokenGenerator` with configured secret and expiration.
-- Reactive repositories (`Mono`/`Flux`) ensure non-blocking DB operations.
-- Global exception handling provides clean HTTP responses for domain errors.
-
 ---
 
 ### 👤 Author

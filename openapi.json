@@ -45,10 +45,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  }
+                  "$ref": "#/components/schemas/RegistrationResponse"
                 }
               }
             }
@@ -86,20 +83,19 @@
         }
       }
     },
-    "/api/user/{id}": {
+    "/api/auth/refresh/{refreshToken}": {
       "get": {
         "tags": [
-          "user-controller"
+          "Access"
         ],
-        "operationId": "getUserById",
+        "operationId": "getNewToken",
         "parameters": [
           {
-            "name": "id",
+            "name": "refreshToken",
             "in": "path",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int32"
+              "type": "string"
             }
           }
         ],
@@ -109,7 +105,7 @@
             "content": {
               "*/*": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserModel"
+                  "$ref": "#/components/schemas/RefreshTokenResponse"
                 }
               }
             }
@@ -130,17 +126,39 @@
           "userName": {
             "maxLength": 100,
             "minLength": 0,
-            "type": "string"
+            "type": "string",
+            "description": "User Email",
+            "example": "robert@test.com"
           },
           "password": {
-            "pattern": "^(?\u003d.{8,}$)(?\u003d.*[A-Z])(?\u003d.*[a-z])(?\u003d.*\\d)(?\u003d.*[^A-Za-z0-9])\\S+$",
-            "type": "string"
+            "pattern": "^(?=.{8,}$)(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[^A-Za-z0-9])\\S+$",
+            "type": "string",
+            "description": "User Password",
+            "example": "b^Rb!?&:nUP5)kT-Bo'oJ9MiJU!^g-Cvz~{["
           },
           "roles": {
             "type": "array",
+            "description": "User's Access Roles",
+            "example": [
+              "USER"
+            ],
             "items": {
-              "type": "string"
+              "type": "string",
+              "description": "User's Access Roles",
+              "example": "[\"USER\"]"
             }
+          }
+        }
+      },
+      "RegistrationResponse": {
+        "type": "object",
+        "properties": {
+          "userName": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -153,11 +171,15 @@
           "userName": {
             "maxLength": 100,
             "minLength": 0,
-            "type": "string"
+            "type": "string",
+            "description": "User Email",
+            "example": "robert@test.com"
           },
           "password": {
-            "pattern": "^(?\u003d.{8,}$)(?\u003d.*[A-Z])(?\u003d.*[a-z])(?\u003d.*\\d)(?\u003d.*[^A-Za-z0-9])\\S+$",
-            "type": "string"
+            "pattern": "^(?=.{8,}$)(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[^A-Za-z0-9])\\S+$",
+            "type": "string",
+            "description": "User Password",
+            "example": "b^Rb!?&:nUP5)kT-Bo'oJ9MiJU!^g-Cvz~{["
           }
         }
       },
@@ -171,19 +193,25 @@
           "userName": {
             "type": "string"
           },
-          "token": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
             "type": "string"
           }
         }
       },
-      "UserModel": {
+      "RefreshTokenResponse": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "integer",
-            "format": "int32"
+          "refreshToken": {
+            "type": "string"
           },
-          "userName": {
+          "accessToken": {
             "type": "string"
           }
         }
@@ -192,7 +220,7 @@
     "securitySchemes": {
       "bearerAuth": {
         "type": "http",
-        "description": "Enter your JWT token in the format: **Bearer \u0026lt;token\u0026gt;**",
+        "description": "Enter your JWT token in the format: **Bearer &lt;token&gt;**",
         "name": "bearerAuth",
         "scheme": "bearer",
         "bearerFormat": "JWT"
