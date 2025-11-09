@@ -1,10 +1,12 @@
 package io.baxter.authentication.infrastructure.behavior.redis;
 
+import lombok.Generated;
 import org.springframework.context.annotation.*;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.serializer.*;
 
+@Generated
 @Configuration
 public class RedisCacheSerialization {
     @Bean
