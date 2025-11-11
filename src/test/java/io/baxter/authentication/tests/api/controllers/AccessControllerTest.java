@@ -8,7 +8,6 @@ import org.junit.jupiter.api.*;
 import org.mockito.*;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.http.*;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -31,7 +30,7 @@ class AccessControllerTest {
 
     private AccessController accessController;
 
-    @MockitoBean
+    @Mock
     private AccessService mockAccessService;
 
     @BeforeEach
