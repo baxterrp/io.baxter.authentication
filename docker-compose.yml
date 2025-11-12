@@ -14,8 +14,6 @@ services:
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     ports:
       - ${MYSQL_PORTS}
-    networks:
-      - baxter-net
 
   api:
     build: .
@@ -34,20 +32,17 @@ services:
     ports:
       - ${API_PORTS}
     restart: unless-stopped
-    networks:
-      - baxter-net
 
   redis:
     image: redis:7
     container_name: authentication-redis
     ports:
       - "4000:6379"
-    networks:
-      - baxter-net
 
 volumes:
   db_data:
 
 networks:
-  baxter-net:
+  default:
     external: true
+    name: baxter-net
