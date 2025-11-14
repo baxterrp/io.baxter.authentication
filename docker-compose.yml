@@ -15,7 +15,7 @@ services:
     ports:
       - ${MYSQL_PORTS}
     healthcheck:
-      test: [ "CMD", "mysqladmin" ,"ping", "-p${MYSQL_ROOT_PASSWORD}" ]
+      test: [ "CMD-SHELL", "mysqladmin ping -p$${MYSQL_ROOT_PASSWORD}" ]
       interval: 3s
       timeout: 5s
       retries: 20
@@ -23,6 +23,7 @@ services:
   redis:
     image: redis:7
     container_name: authentication-redis
+    restart: unless-stopped
     ports:
       - "4000:6379"
 
